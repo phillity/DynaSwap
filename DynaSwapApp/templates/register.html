@@ -62,10 +62,10 @@
         </tr>
         <tr>
             <td>
-                <div id="videoStreamCaption" class="caption" style="visibility: hidden">Video Stream</div>
+                <div id="videoStreamCaption" class="caption">Video Stream</div>
             </td>
             <td>
-                <div id="capturedPictureCaption" class="caption" style="visibility: hidden">Captured Picture</div>
+                <div id="capturedPictureCaption" class="caption">Captured Picture</div>
             </td>
             <td></td>
             <td></td>
@@ -230,13 +230,18 @@
     let canvasOutput = document.getElementById('canvasOutput');
     let canvasContext = canvasOutput.getContext('2d');
     let snap = document.getElementById('snap');
+    let caption1 = document.getElementById('videoStreamCaption');
+    let caption2 = document.getElementById('capturedPictureCaption');
     snap.style.visibility = "hidden";
+    caption1.style.visibility = "hidden";
+    caption2.style.visibility = "hidden";
 
     startAndStop.addEventListener('click', () => {
         if (!streaming) {
             utils.clearError();
             utils.startCamera('qvga', onVideoStarted, 'videoInput');
             snap.style.visibility = "visible";
+            caption1.style.visibility = "visible";
         } else {
             utils.stopCamera();
             onVideoStopped();
@@ -253,7 +258,7 @@
         snapImage = canvasOutput.toDataURL("image/jpeg");
         frame.delete();
 
-        $("#capturedPictureCaption").show();
+        caption2.style.visibility = "visible";
     });
 
     function onVideoStarted() {
@@ -261,8 +266,6 @@
         startAndStop.innerText = 'Stop';
         videoInput.width = videoInput.videoWidth;
         videoInput.height = videoInput.videoHeight;
-
-        $("#videoStreamCaption").show();
     }
 
     function onVideoStopped() {
@@ -270,8 +273,8 @@
         canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
         streaming = false;
         
-        $("#videoStreamCaption").hide();
-        $("#capturedPictureCaption").hide();
+        caption1.style.visibility = "hidden";
+        caption2.style.visibility = "hidden";
     }
 
     utils.loadOpenCv(() => {
