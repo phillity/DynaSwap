@@ -11,6 +11,7 @@ from django.shortcuts import render
 from django.templatetags.static import static
 from django.views.generic import TemplateView
 from django.core.files.base import ContentFile
+from DynaSwapApp.models import Roles
 
 # Create your views here.
 class HomePageView(TemplateView):
@@ -27,12 +28,10 @@ class AuthenticationView(TemplateView):
 
 class GetRolesView(TemplateView):
     def get(self, request, **kwargs):
-        return JsonResponse({"status": "true", "roles" : [
-                { "role" : "President", "url" : static('/images/rs_1.jpg') }, 
-                { "role" : "CEO", "url" : static('/images/rs_2.jpg') },
-                { "role" : "Manager", "url" : static('/images/rs_3.jpg') },
-                { "role" : "Worker", "url" : static('/images/rs_4.jpg') },
-            ]})
+        roles = []
+        for role in Roles.objects.all().only('role_name', 'url'):
+            roles.append({"role" : role.role_name, "url" : static(role.url)})
+        return JsonResponse({"status": "true", "roles" : roles})
 
 class UploadImageView(TemplateView):
     def post(self, request, **kwargs):
