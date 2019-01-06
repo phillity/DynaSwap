@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--- load django staticfiles
+    ================================================== -->
+    {% load static %}
+   
+    <!-- favicons
+    ================================================== -->
+    <link rel="shortcut icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+    <link rel="icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+
+    <!-- CSS
+    ================================================== -->
+    <link rel="stylesheet" href="{% static "/css/choose-role-dialog.css" %}">
+    <link rel="stylesheet" href="{% static "/css/jquery-ui.min.css" %}">
+
+</head>
+
+<body>
+
+    <h1>DynaSWAP Secure Facial Authentication</h1>
+    <h2>Register</h2>
+    <p></p>
+    
+    <button id="home">Home</button>
+
+    <p></p>
+    <p></p>
+    <table>
+        <tr>
+            <td>Username</td>
+            <td><input type="text" id="userName"></td>
+        </tr>
+        <tr>
+            <td><button id="chooseRole">Choose Role</button></td>
+            <td><input readonly type="text" id="selectedRole"></td>
+        </tr>        
+    </table>
+
+    <p>
+        Click <b>Start/Stop</b> button to start or stop the camera capture.<br>
+        Click <b>Snap</b> button to capture a picture from the camera stream.<br>
+    </p>
+    <div>
+    <div class="control"><button id="startAndStop" disabled>Start</button></div>
+    <div class="control"><button id="snap" enabled>Snap</button></div>
+    <div class="control"><button id="uploadImage" enabled>Register Image</button></div>
+    </div>
+    <p class="err" id="errorMessage"></p>
+    <div>
+        <table cellpadding="0" cellspacing="0" width="0" border="0">
+        <tr>
+            <td>
+                <video id="videoInput" width=480 height=320></video>
+            </td>
+            <td>
+                <canvas id="canvasOutput" width=480 height=320></canvas>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>
+                <div id="videoStreamCaption" class="caption" style="visibility: hidden">Video Stream</div>
+            </td>
+            <td>
+                <div id="capturedPictureCaption" class="caption" style="visibility: hidden">Captured Picture</div>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        </table>
+    </div>
+    
+    
+    <!-- Django file uploader
+    ================================================== -->
+    <div style="display: none">
+        <form id="imageUploadform" action="/upload/image/" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+        </form>
+    </div>
+
+
+    <!-- Choose role dialog
+    ================================================== -->
+    <div id="dialog" title="Choose Role">
+        <form action="" method="post">
+            <img id="roleSampleImg" style="display: block; margin-left: auto; margin-right: auto;" />
+            <select id="roleSelect">
+            </select>
+            <div id="buttonOk">OK</div>
+        </form>
+    </div>
+
+    <!-- Java Script
+    ================================================== -->
+    <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script>
+    <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script>
+    <!-- <script src="{% static "/js/opencv.js" %}"></script> -->
+    <script src="{% static "/js/utils.js" %}"></script>
+
+    <script>
+    
+
+    const OPENCV_URL = '{% static "/js/opencv.js" %}';
+
+
+    $( document ).ready(function() {
+        $("#home").click(function() {
+            window.location.href = "/";
+        });
+        
+        // Load up role select dialog (on page load only)
+        $.ajax({
+            url: "/getroles/",
+            type: "get",
+            success: function(data) {
+                if (data["status"] === "true") {
+                    let $select = $("#roleSelect");
+                    $select.find("option").remove();  
+                    $.each(data.roles,function(index, value) 
+                    {
+                        $select.append("<option value='" + value.url + "'>" + value.role + "</option>");
+                    });
+
+                    // Set the sample image
+                    $("#roleSampleImg").attr("src", $select.val());
+                    $("#selectedRole").val($("#roleSelect>option:selected").text());
+                }
+                else {
+                }
+            },
+            error: function (error) {
+                console.log(error);
+                alert('Sorry and unexpected error has occurred, please try again');
+            },
+        });
+    
+        // Create jquery ui dialog for role selection
+        $("#dialog").dialog({
+            autoOpen: false,
+            modal: true,
+            dialogClass: "noTitleBar",
+            resizable: false,
+            open: function(event, ui) {
+                $("#buttonOk").click(function() {
+                    $("#dialog").dialog("close");
+                });
+            },
+            close: function(event, ui) {
+                $("#selectedRole").val($("#roleSelect>option:selected").text());
+            },
+        });
+
+        // When selection changes in choose role dialog
+        $("#roleSelect").change(function() {
+            $("#roleSampleImg").attr("src", $("#roleSelect").val())
+        });
+
+        // When user clicks on role gallery icon or role image, open up the choose role dialog
+        $("#chooseRole").click(function() {
+            $("#dialog").dialog("open");
+        });
+
+        // After user jas snapped an image, this button will upload it
+        $("#uploadImage").click(function() {
+            let data = new FormData($('form').get(0));
+            data.append('image', snapImage); 
+            data.append('userName', $("#userName").val()); 
+            data.append('role', $("#selectedRole").val()); 
+         
+            $.ajax({
+                url: $("#imageUploadform").attr("action"),
+                type: $("#imageUploadform").attr("method"),
+                data: data,
+                cache: false,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if (data["status"] === "true") {
+                        //$("#uploadedImage").attr("src", data["filePath"]);
+                        alert("YAAAAY");
+                    }
+                    else {
+                        let errMsg = "Sorry and unexpected error has occurred, please try again";
+                        for (let i=0; i<data.errors.length; i++)
+                        {
+                            console.log(data.errors[i]);
+                            if (data.errors[i].length == 2)
+                                errMsg = data.errors[i][1];  // extract the error msg
+                        }
+                        $("#uploadedImage").removeAttr("src");
+                        alert(errMsg);
+                    }
+                },
+                error: function (error) {
+                    console.log(error);
+                    alert('Sorry and unexpected error has occurred, please try again');
+                },
+            });
+        });
+    })
+
+
+    // using jQuery
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+
+    let utils = new Utils('errorMessage');
+    let streaming = false;
+    let snapImage = new Image();
+    let videoInput = document.getElementById('videoInput');
+    let startAndStop = document.getElementById('startAndStop');
+    let canvasOutput = document.getElementById('canvasOutput');
+    let canvasContext = canvasOutput.getContext('2d');
+    let snap = document.getElementById('snap');
+    snap.style.visibility = "hidden";
+
+    startAndStop.addEventListener('click', () => {
+        if (!streaming) {
+            utils.clearError();
+            utils.startCamera('qvga', onVideoStarted, 'videoInput');
+            snap.style.visibility = "visible";
+        } else {
+            utils.stopCamera();
+            onVideoStopped();
+            snap.style.visibility = "hidden";
+        }
+    });
+
+    snap.addEventListener('click', () => {
+        let video = document.getElementById('videoInput');
+        let cap = new cv.VideoCapture(video);
+        let frame = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+        cap.read(frame);
+        cv.imshow('canvasOutput',frame)
+        snapImage = canvasOutput.toDataURL("image/jpeg");
+        frame.delete();
+
+        $("#capturedPictureCaption").show();
+    });
+
+    function onVideoStarted() {
+        streaming = true;
+        startAndStop.innerText = 'Stop';
+        videoInput.width = videoInput.videoWidth;
+        videoInput.height = videoInput.videoHeight;
+
+        $("#videoStreamCaption").show();
+    }
+
+    function onVideoStopped() {
+        startAndStop.innerText = 'Start';
+        canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+        streaming = false;
+        
+        $("#videoStreamCaption").hide();
+        $("#capturedPictureCaption").hide();
+    }
+
+    utils.loadOpenCv(() => {
+        startAndStop.removeAttribute('disabled');
+    });
+
+    </script> 
+</body>
+</html>

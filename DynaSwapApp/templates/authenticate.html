@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--- load django staticfiles
+    ================================================== -->
+    {% load static %}
+
+    
+    <!-- favicons
+    ================================================== -->
+    <link rel="shortcut icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+    <link rel="icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+
+</head>
+
+<body>
+
+    <h1>DynaSWAP Secure Facial Authentication</h1>
+    <h2>Authenticate</h2>
+    <p></p>
+    
+    <button id="home">Home</button>
+
+
+
+    <!-- Java Script
+    ================================================== -->
+    <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script>
+    <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script>
+    <script src="{% static "/js/opencv.js" %}"></script>
+    <script src="{% static "/js/utils.js" %}"></script>
+
+    <script>
+    
+    $( document ).ready(function() {
+        $("#home").click(function() {
+            window.location.href = "/";
+        });
+    })
+
+    </script> 
+</body>
+</html>
