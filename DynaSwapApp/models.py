@@ -24,6 +24,12 @@ class Users(models.Model):
     classifier = models.BinaryField()
     created_on = models.DateTimeField(auto_now_add=True)
     last_authenticated = models.DateTimeField(auto_now_add=True)
+    
+    # def __init__(self,user_name,role,bio_capsule,classifier):
+    #     self.user_name = user_name
+    #     self.role = role
+    #     self.bio_capsule = bio_capsule
+    #     self.classifier = classifier
 
     def __str__(self):
         return self.user_name

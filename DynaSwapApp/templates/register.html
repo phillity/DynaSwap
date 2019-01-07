@@ -41,11 +41,15 @@
     <p>
         Click <b>Start/Stop</b> button to start or stop the camera capture.<br>
         Click <b>Snap</b> button to capture a picture from the camera stream.<br>
+        Click <b>Submit Image</b> button to submit captured image.<br>
+        Click <b>Register</b> button to register submitted images and create account.<br>
+        <div id = "imageCounter"><b>Please submit [<span id=numImages>3</span>] to complete registration.  Images submitted so far [<span id="numSoFar">0</span>].</b></div>
     </p>
     <div>
     <div class="control"><button id="startAndStop" disabled>Start</button></div>
     <div class="control"><button id="snap" enabled>Snap</button></div>
-    <div class="control"><button id="uploadImage" enabled>Register Image</button></div>
+    <div class="control"><button id="uploadImage" enabled>Submit Image</button></div>
+    <div class="control"><button id="register" enabled>Register</button></div>
     </div>
     <p class="err" id="errorMessage"></p>
     <div>
@@ -105,6 +109,7 @@
     
 
     const OPENCV_URL = '{% static "/js/opencv.js" %}';
+    const NUM_SUBMITTED_IMAGES_REQUIRED = 3;
 
 
     $( document ).ready(function() {
@@ -112,6 +117,9 @@
             window.location.href = "/";
         });
         
+        $("#numImages").text(NUM_SUBMITTED_IMAGES_REQUIRED);
+        $("#numSoFar").text(capturedImages.length);
+
         // Load up role select dialog (on page load only)
         $.ajax({
             url: "/getroles/",
@@ -164,13 +172,43 @@
             $("#dialog").dialog("open");
         });
 
-        // After user jas snapped an image, this button will upload it
+        // After user has snapped an image, this button will submit it
         $("#uploadImage").click(function() {
+            submitImage.style.visibility = "hidden";
+            capturedImages.push(snapImage);
+            $("#numSoFar").text(capturedImages.length);
+
+            if (capturedImages.length === NUM_SUBMITTED_IMAGES_REQUIRED)
+            {
+                register.style.visibility = "visible";
+                document.getElementById("imageCounter").style.visibility = "hidden";
+                startAndStop.style.visibility = "hidden";
+                snap.style.visibility = "hidden";
+                caption1.style.visibility = "hidden";
+                caption2.style.visibility = "hidden";
+                submitImage.style.visibility = "hidden";
+                canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+                utils.stopCamera();
+                streaming = false;
+            }
+        });
+
+        $("#register").click(function() {
+            register.style.visibility = "hidden";
+
             let data = new FormData($('form').get(0));
-            data.append('image', snapImage); 
+            
+            // Append each captured image to the form data
+            for (i = 0; i < NUM_SUBMITTED_IMAGES_REQUIRED; i++)
+            {
+                data.append('image'+ i, capturedImages[i]); 
+            }
+
+            // Add other fields
             data.append('userName', $("#userName").val()); 
             data.append('role', $("#selectedRole").val()); 
-         
+        
+            // Send it to the mothership
             $.ajax({
                 url: $("#imageUploadform").attr("action"),
                 type: $("#imageUploadform").attr("method"),
@@ -180,8 +218,8 @@
                 contentType: false,
                 success: function(data) {
                     if (data["status"] === "true") {
-                        //$("#uploadedImage").attr("src", data["filePath"]);
-                        alert("YAAAAY");
+                        alert("Successfully Registered: " + $("#userName").val());
+                        window.location.href = "/";
                     }
                     else {
                         let errMsg = "Sorry and unexpected error has occurred, please try again";
@@ -221,7 +259,7 @@
         return cookieValue;
     }
 
-
+    let capturedImages = new Array();
     let utils = new Utils('errorMessage');
     let streaming = false;
     let snapImage = new Image();
@@ -232,7 +270,11 @@
     let snap = document.getElementById('snap');
     let caption1 = document.getElementById('videoStreamCaption');
     let caption2 = document.getElementById('capturedPictureCaption');
+    let submitImage = document.getElementById('uploadImage');
+    let register = document.getElementById('register');
     snap.style.visibility = "hidden";
+    register.style.visibility = "hidden";
+    submitImage.style.visibility = "hidden";
     caption1.style.visibility = "hidden";
     caption2.style.visibility = "hidden";
 
@@ -259,6 +301,7 @@
         frame.delete();
 
         caption2.style.visibility = "visible";
+        submitImage.style.visibility = "visible";
     });
 
     function onVideoStarted() {
@@ -275,6 +318,7 @@
         
         caption1.style.visibility = "hidden";
         caption2.style.visibility = "hidden";
+        submitImage.style.visibility = "hidden";
     }
 
     utils.loadOpenCv(() => {
