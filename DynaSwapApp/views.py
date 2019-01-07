@@ -27,11 +27,11 @@ class HomePageView(TemplateView):
     def get(self, request, **kwargs):
         return render(request, 'index.html')
 
-class RegistrationView(TemplateView):
+class RegisterPageView(TemplateView):
     def get(self, request, **kwargs):
         return render(request, 'register.html')
 
-class AuthenticationView(TemplateView):
+class AuthenticatePageView(TemplateView):
     def get(self, request, **kwargs):
         return render(request, 'authenticate.html')
 
@@ -42,15 +42,13 @@ class GetRolesView(TemplateView):
             roles.append({"role" : role.role_name, "url" : static(role.url)})
         return JsonResponse({"status": "true", "roles" : roles})
 
-class UploadImageView(TemplateView):
+class RegisterView(TemplateView):
     def post(self, request, **kwargs):
-        # Get POSTed data form
+        ### Get POST data form
         try:
-            userName = request.POST.get("userName", "")
-            #usersFound = Users.objects.filter(user_name=userName)
-            #if userFound.
-                #return JsonResponse({"status" : "show", "error" : "User " + userName + " has already been defined"})
-
+            # Extract data
+            user_name = request.POST.get("userName", "")
+            role = request.POST.get("role", "")
             images = []
             for key, value in request.POST.items():
                 if key[:5] == "image":
@@ -59,34 +57,44 @@ class UploadImageView(TemplateView):
                     image = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
                     images.append(image)
 
-            role = request.POST.get("role", "")
+            # Check if username is already taken
+            user_found = Users.objects.filter(user_name=user_name)
+            if user_found.count() > 0:
+                return JsonResponse({"status" : "taken", "error" : "Username " + user_name + " has already been registered."})
         except Exception as e:
             return JsonResponse({"status" : "false", "error" : "POST data error. " + str(e)})
         
-        # Process POSTed data form
+        ### Process POST data form
+        # Load face models and create registration object
         mtcnn_model = MTCNN.MTCNN()
         facenet_model = FNET.FNET()
         reg = register(mtcnn_model,facenet_model)
         try:
-            # Convert submited images to bcs
+            # Get role info corresponding to chosen role
+            role_instance = Roles.objects.filter(role_name=role)[0]
+            role_id = role_instance.id
+
+            # Convert submited images to biocapsules
             bcs = np.empty((0,513))
             for image in images:
                 stream = image.file
                 image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
-                bc = reg.register_image(userName,image,role)
+                bc = reg.register_image(user_name,image,role_id)
                 bcs = np.vstack([bcs,bc])
 
-            # Train classifier using bcs
-            classifier = reg.register_classifier(userName,bcs)
+            # Train classifier using biocapsules
+            classifier = reg.register_classifier(user_name,bcs)
 
+            # Convert biocapsules and classifier to binary to save in database
             classifier_binary = pickle.dumps(classifier)
             bcs_binary = pickle.dumps(bcs)
 
-            role_instance = Roles.objects.filter(role_name=role)[0]
-            new_user = Users(user_name=userName,role=role_instance,bio_capsule=bcs_binary,classifier=classifier_binary)
+            # Save new user into database
+            
+            new_user = Users(user_name=user_name,role=role_instance,bio_capsule=bcs_binary,classifier=classifier_binary)
             new_user.save()
         except Exception as e:
-            return JsonResponse({"status" : "false", "error" : "Process data error. " + str(e)})
+            return JsonResponse({"status" : "image", "error" : "Invalid input image. " + str(e)})
 
         return JsonResponse({"status":"true"})
         

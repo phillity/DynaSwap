@@ -11,7 +11,9 @@ class FNET():
         self.sess = tf.Session()
         
         # 20180408-102900//20180408-102900.pb 0.9965 VGGFace2 Inception ResNet v1
-        model_path = "DynaSwapApp//services//face_models//20180408-102900.pb"
+        #model_path = "DynaSwapApp//services//face_models//20180408-102900.pb"
+        dir = os.path.dirname(__file__)
+        model_path = os.path.join(dir, '20180408-102900.pb')
         facenet.load_model(model_path)
         
 

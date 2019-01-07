@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import sys
+import os
 from sklearn.svm import SVC
 from DynaSwapApp.services.face_utils import face_utils
 from DynaSwapApp.services.face_models import MTCNN
@@ -16,25 +17,19 @@ class register:
         try:
             image = self.__face.align(image)
         except:
-            raise ValueError("Bad Input Image")
-            print("Bad Input Image")
+            raise ValueError("Multiple or no faces deted in image.")
+            print("Multiple or no faces deted in image.")
         
         # Feature Extraction
         feature = self.__face.extract(image)
         feature_flip = self.__face.extract(cv2.flip(image,1))
         
         # Get RS Feature from database
-        rs_idx = -1
-        if rs_id == "President":
-            rs_idx = 0
-        elif rs_id == "CEO":
-            rs_idx = 1
-        elif rs_id == "Manager":
-            rs_idx = 2
-        else:
-            rs_idx = 3
-        rs_data = np.load("DynaSwapApp//services//database//rs//rs_features.npy")
+        dir = os.path.dirname(__file__)
+        filename = os.path.join(dir, 'database','rs_features.npy')
+        rs_data = np.load(filename)
 
+        rs_idx = rs_id-1
         rs_feature = rs_data[rs_idx,:]
         rs_feature = np.reshape(rs_feature[:-1],(1,512))
 
@@ -58,7 +53,9 @@ class register:
 
     def register_classifier(self,user_id,bcs):
         # Load dummy features to use as negative examples
-        dummy = np.load("DynaSwapApp//services//database//dummy//dummy_bc.npy")
+        dir = os.path.dirname(__file__)
+        filename = os.path.join(dir, 'database','dummy_bc.npy')
+        dummy = np.load(filename)
 
         idx = np.where(bcs[:,-1] == user_id)
         bcs[idx,-1] = 1.

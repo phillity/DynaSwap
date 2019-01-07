@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!--- load django staticfiles
-    ================================================== -->
+
+    <!--- load django staticfiles =====================================================================
+    =================================================================================================== -->
     {% load static %}
+    <!-- ==============================================================================================
+    =================================================================================================== -->
    
-    <!-- favicons
-    ================================================== -->
+    <!-- favicons =====================================================================================
+    =================================================================================================== -->
     <link rel="shortcut icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
     <link rel="icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
-    <!-- CSS
-    ================================================== -->
+    <!-- CSS ==========================================================================================
+    =================================================================================================== -->
     <link rel="stylesheet" href="{% static "/css/choose-role-dialog.css" %}">
     <link rel="stylesheet" href="{% static "/css/jquery-ui.min.css" %}">
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
 </head>
 
 <body>
-
+    <!-- Webpage Objects ==============================================================================
+    =================================================================================================== -->
     <h1>DynaSWAP Secure Facial Authentication</h1>
     <h2>Register</h2>
     <p></p>
@@ -33,7 +41,7 @@
             <td><input type="text" id="userName"></td>
         </tr>
         <tr>
-            <td><button id="chooseRole">Choose Role</button></td>
+            <td><button id="chooseRoleButton">Choose Role</button></td>
             <td><input readonly type="text" id="selectedRole"></td>
         </tr>        
     </table>
@@ -43,13 +51,13 @@
         Click <b>Snap</b> button to capture a picture from the camera stream.<br>
         Click <b>Submit Image</b> button to submit captured image.<br>
         Click <b>Register</b> button to register submitted images and create account.<br>
-        <div id = "imageCounter"><b>Please submit [<span id=numImages>3</span>] to complete registration.  Images submitted so far [<span id="numSoFar">0</span>].</b></div>
+        <div id = "imageCounterDiv"><b>Please submit [<span id=imageReqSpan>3</span>] to complete registration.  Images submitted so far [<span id="imageSubSpan">0</span>].</b></div>
     </p>
     <div>
-    <div class="control"><button id="startAndStop" disabled>Start</button></div>
-    <div class="control"><button id="snap" enabled>Snap</button></div>
-    <div class="control"><button id="uploadImage" enabled>Submit Image</button></div>
-    <div class="control"><button id="register" enabled>Register</button></div>
+    <div class="control"><button id="startAndStopButton" disabled>Start</button></div>
+    <div class="control"><button id="snapButton" enabled>Snap</button></div>
+    <div class="control"><button id="submitImageButton" enabled>Submit Image</button></div>
+    <div class="control"><button id="registerButton" enabled>Register</button></div>
     </div>
     <p class="err" id="errorMessage"></p>
     <div>
@@ -76,19 +84,22 @@
         </tr>
         </table>
     </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
     
-    
-    <!-- Django file uploader
-    ================================================== -->
+    <!-- Django file uploader =========================================================================
+    =================================================================================================== -->
     <div style="display: none">
-        <form id="imageUploadform" action="/upload/image/" method="post" enctype="multipart/form-data">
+        <form id="registrationForm" action="/registration/" method="post" enctype="multipart/form-data">
             {% csrf_token %}
         </form>
     </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
 
-    <!-- Choose role dialog
-    ================================================== -->
+    <!-- Choose role dialog ===========================================================================
+    =================================================================================================== -->
     <div id="dialog" title="Choose Role">
         <form action="" method="post">
             <img id="roleSampleImg" style="display: block; margin-left: auto; margin-right: auto;" />
@@ -97,32 +108,90 @@
             <div id="buttonOk">OK</div>
         </form>
     </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
-    <!-- Java Script
-    ================================================== -->
-    <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script>
-    <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script>
+    <!-- Java Script ==================================================================================
+    =================================================================================================== -->
+    <!-- <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <!-- <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
     <!-- <script src="{% static "/js/opencv.js" %}"></script> -->
-    <script src="{% static "/js/utils.js" %}"></script>
+    <!-- <script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script> -->
+    <script src="{% static "/js/utils.js" %}"></script> 
+    <!-- <script src="https://docs.opencv.org/master/utils.js" type="text/javascript"></script> -->
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
     <script>
-    
 
+    ////////////////////////////////////////////////////////////////////////////////////
+    //////  Variables /////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////
+    //////  Constants //////////////////////////
+    /////////////////////////////////////////////
     const OPENCV_URL = '{% static "/js/opencv.js" %}';
     const NUM_SUBMITTED_IMAGES_REQUIRED = 3;
 
-
-    $( document ).ready(function() {
+    /////////////////////////////////////////////
+    //////  Intialize Variables ////////////////
+    /////////////////////////////////////////////
+    let capturedImages = new Array();
+    let utils = new Utils('errorMessage');
+    let streaming = false;
+    let snapImage = new Image();
+    
+    /////////////////////////////////////////////
+    //////  Video/Image Regions ////////////////
+    /////////////////////////////////////////////
+    let videoInput = document.getElementById('videoInput');
+    let canvasOutput = document.getElementById('canvasOutput');
+    let canvasContext = canvasOutput.getContext('2d');
+    
+    /////////////////////////////////////////////
+    //////  Buttons ////////////////////////////
+    /////////////////////////////////////////////
+    let chooseRoleButton = document.getElementById('chooseRoleButton');
+    let startAndStopButton = document.getElementById('startAndStopButton');
+    let snapButton = document.getElementById('snapButton');
+    let submitImageButton = document.getElementById('submitImageButton');
+    let registerButton = document.getElementById('registerButton');
+    
+    /////////////////////////////////////////////
+    //////  Text Regions ///////////////////////
+    /////////////////////////////////////////////
+    let imageCounterDiv = document.getElementById('imageCounterDiv');
+    let imageReqSpan = document.getElementById('imageReqSpan');
+    let imageSubSpan = document.getElementById('imageSubSpan');
+    let caption1 = document.getElementById('videoStreamCaption');
+    let caption2 = document.getElementById('capturedPictureCaption');
+    
+    ////////////////////////////////////////////////////////////////////////////////////
+    //////  Document Startup //////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    $(document).ready(function() {
         $("#home").click(function() {
             window.location.href = "/";
         });
         
-        $("#numImages").text(NUM_SUBMITTED_IMAGES_REQUIRED);
-        $("#numSoFar").text(capturedImages.length);
+        /////////////////////////////////////////////
+        //////  Startup Setup //////////////////////
+        /////////////////////////////////////////////
+        imageReqSpan.textContent = NUM_SUBMITTED_IMAGES_REQUIRED;
+        imageSubSpan.textContent = capturedImages.length;
+        snapButton.style.visibility = "hidden";
+        registerButton.style.visibility = "hidden";
+        submitImageButton.style.visibility = "hidden";
+        caption1.style.visibility = "hidden";
+        caption2.style.visibility = "hidden";
 
-        // Load up role select dialog (on page load only)
+        /////////////////////////////////////////////
+        //////  Role Select Dialogue ///////////////
+        /////////////////////////////////////////////
         $.ajax({
-            url: "/getroles/",
+            url: "/get_roles/",
             type: "get",
             success: function(data) {
                 if (data["status"] === "true") {
@@ -146,7 +215,9 @@
             },
         });
     
-        // Create jquery ui dialog for role selection
+        /////////////////////////////////////////////
+        //////  Role Select UI /////////////////////
+        /////////////////////////////////////////////
         $("#dialog").dialog({
             autoOpen: false,
             modal: true,
@@ -162,39 +233,83 @@
             },
         });
 
-        // When selection changes in choose role dialog
+        /////////////////////////////////////////////
+        //////  Role Select Change /////////////////
+        /////////////////////////////////////////////
         $("#roleSelect").change(function() {
             $("#roleSampleImg").attr("src", $("#roleSelect").val())
         });
 
-        // When user clicks on role gallery icon or role image, open up the choose role dialog
-        $("#chooseRole").click(function() {
+        /////////////////////////////////////////////
+        //////  Choose Role Button Action Listener /
+        /////////////////////////////////////////////
+        chooseRoleButton.addEventListener('click', () => {
             $("#dialog").dialog("open");
         });
 
-        // After user has snapped an image, this button will submit it
-        $("#uploadImage").click(function() {
-            submitImage.style.visibility = "hidden";
-            capturedImages.push(snapImage);
-            $("#numSoFar").text(capturedImages.length);
+        /////////////////////////////////////////////
+        //////  Start/Stop Button Action Listener //
+        /////////////////////////////////////////////
+        startAndStopButton.addEventListener('click', () => {
+            if (!streaming) {
+                utils.clearError();
+                utils.startCamera('qvga', onVideoStarted, 'videoInput');
 
-            if (capturedImages.length === NUM_SUBMITTED_IMAGES_REQUIRED)
-            {
-                register.style.visibility = "visible";
-                document.getElementById("imageCounter").style.visibility = "hidden";
-                startAndStop.style.visibility = "hidden";
-                snap.style.visibility = "hidden";
-                caption1.style.visibility = "hidden";
-                caption2.style.visibility = "hidden";
-                submitImage.style.visibility = "hidden";
-                canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+                snapButton.style.visibility = "visible";
+                caption1.style.visibility = "visible";
+            } else {
                 utils.stopCamera();
-                streaming = false;
+                onVideoStopped();
+
+                snapButton.style.visibility = "hidden";
             }
         });
 
-        $("#register").click(function() {
-            register.style.visibility = "hidden";
+        /////////////////////////////////////////////
+        //////  Snap Button Action Listener ////////
+        /////////////////////////////////////////////
+        snapButton.addEventListener('click', () => {
+            let video = document.getElementById('videoInput');
+            let cap = new cv.VideoCapture(video);
+            let frame = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+            cap.read(frame);
+            cv.imshow('canvasOutput',frame)
+            snapImage = canvasOutput.toDataURL("image/jpeg");
+            frame.delete();
+
+            submitImageButton.style.visibility = "visible";
+            caption2.style.visibility = "visible";
+        });
+
+        /////////////////////////////////////////////
+        //////  Submit Button Action Listener //////
+        /////////////////////////////////////////////
+        submitImageButton.addEventListener('click', () => {
+            submitImageButton.style.visibility = "hidden";
+            capturedImages.push(snapImage);
+            //$("#numSoFar").text(capturedImages.length);
+            imageSubSpan.textContent = capturedImages.length;
+
+            if (capturedImages.length === NUM_SUBMITTED_IMAGES_REQUIRED)
+            {
+                canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+                utils.stopCamera();
+                streaming = false;
+                imageCounterDiv.style.visibility = "hidden";
+                startAndStopButton.style.visibility = "hidden";
+                snapButton.style.visibility = "hidden";
+                submitImageButton.style.visibility = "hidden";
+                registerButton.style.visibility = "visible";
+                caption1.style.visibility = "hidden";
+                caption2.style.visibility = "hidden";
+            }
+        });
+
+        /////////////////////////////////////////////
+        //////  Register Button Action Listener ////
+        /////////////////////////////////////////////
+        registerButton.addEventListener('click', () => {
+            registerButton.style.visibility = "hidden";
 
             let data = new FormData($('form').get(0));
             
@@ -210,8 +325,8 @@
         
             // Send it to the mothership
             $.ajax({
-                url: $("#imageUploadform").attr("action"),
-                type: $("#imageUploadform").attr("method"),
+                url: $("#registrationForm").attr("action"),
+                type: $("#registrationForm").attr("method"),
                 data: data,
                 cache: false,
                 processData: false,
@@ -221,16 +336,20 @@
                         alert("Successfully Registered: " + $("#userName").val());
                         window.location.href = "/";
                     }
+                    else if (data["status"] === "taken") {
+                        let errMsg = data["error"];
+                        alert(errMsg);
+                        window.location.href = "/";
+                    }
+                    else if (data["status"] === "image") {
+                        let errMsg = data["error"];
+                        alert(errMsg);
+                        window.location.href = "/";
+                    }
                     else {
                         let errMsg = "Sorry and unexpected error has occurred, please try again";
-                        for (let i=0; i<data.errors.length; i++)
-                        {
-                            console.log(data.errors[i]);
-                            if (data.errors[i].length == 2)
-                                errMsg = data.errors[i][1];  // extract the error msg
-                        }
-                        $("#uploadedImage").removeAttr("src");
                         alert(errMsg);
+                        window.location.href = "/";
                     }
                 },
                 error: function (error) {
@@ -239,10 +358,42 @@
                 },
             });
         });
+
+        utils.loadOpenCv(() => {
+        startAndStopButton.removeAttribute('disabled');
+    });
     })
 
+    ////////////////////////////////////////////////////////////////////////////////////
+    //////  Functions /////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////
+    //////  Video Start Function ///////////////
+    /////////////////////////////////////////////
+    function onVideoStarted() {
+        streaming = true;
+        videoInput.width = videoInput.videoWidth;
+        videoInput.height = videoInput.videoHeight;
 
-    // using jQuery
+        startAndStopButton.innerText = 'Stop';
+    }
+
+    /////////////////////////////////////////////
+    //////  Video Stop Function ////////////////
+    /////////////////////////////////////////////
+    function onVideoStopped() {
+        startAndStopButton.innerText = 'Start';
+        canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+        streaming = false;
+        
+        submitImageButton.style.visibility = "hidden";
+        caption1.style.visibility = "hidden";
+        caption2.style.visibility = "hidden";
+    }
+
+    /////////////////////////////////////////////
+    //////  Get Cookie Function ////////////////
+    /////////////////////////////////////////////
     function getCookie(name) {
         var cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -258,72 +409,6 @@
         }
         return cookieValue;
     }
-
-    let capturedImages = new Array();
-    let utils = new Utils('errorMessage');
-    let streaming = false;
-    let snapImage = new Image();
-    let videoInput = document.getElementById('videoInput');
-    let startAndStop = document.getElementById('startAndStop');
-    let canvasOutput = document.getElementById('canvasOutput');
-    let canvasContext = canvasOutput.getContext('2d');
-    let snap = document.getElementById('snap');
-    let caption1 = document.getElementById('videoStreamCaption');
-    let caption2 = document.getElementById('capturedPictureCaption');
-    let submitImage = document.getElementById('uploadImage');
-    let register = document.getElementById('register');
-    snap.style.visibility = "hidden";
-    register.style.visibility = "hidden";
-    submitImage.style.visibility = "hidden";
-    caption1.style.visibility = "hidden";
-    caption2.style.visibility = "hidden";
-
-    startAndStop.addEventListener('click', () => {
-        if (!streaming) {
-            utils.clearError();
-            utils.startCamera('qvga', onVideoStarted, 'videoInput');
-            snap.style.visibility = "visible";
-            caption1.style.visibility = "visible";
-        } else {
-            utils.stopCamera();
-            onVideoStopped();
-            snap.style.visibility = "hidden";
-        }
-    });
-
-    snap.addEventListener('click', () => {
-        let video = document.getElementById('videoInput');
-        let cap = new cv.VideoCapture(video);
-        let frame = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-        cap.read(frame);
-        cv.imshow('canvasOutput',frame)
-        snapImage = canvasOutput.toDataURL("image/jpeg");
-        frame.delete();
-
-        caption2.style.visibility = "visible";
-        submitImage.style.visibility = "visible";
-    });
-
-    function onVideoStarted() {
-        streaming = true;
-        startAndStop.innerText = 'Stop';
-        videoInput.width = videoInput.videoWidth;
-        videoInput.height = videoInput.videoHeight;
-    }
-
-    function onVideoStopped() {
-        startAndStop.innerText = 'Start';
-        canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
-        streaming = false;
-        
-        caption1.style.visibility = "hidden";
-        caption2.style.visibility = "hidden";
-        submitImage.style.visibility = "hidden";
-    }
-
-    utils.loadOpenCv(() => {
-        startAndStop.removeAttribute('disabled');
-    });
 
     </script> 
 </body>
