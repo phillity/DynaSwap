@@ -90,7 +90,6 @@ class RegisterView(TemplateView):
             bcs_binary = pickle.dumps(bcs)
 
             # Save new user into database
-            
             new_user = Users(user_name=user_name,role=role_instance,bio_capsule=bcs_binary,classifier=classifier_binary)
             new_user.save()
         except Exception as e:
