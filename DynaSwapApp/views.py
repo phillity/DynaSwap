@@ -19,12 +19,13 @@ from django.core.files.base import ContentFile
 from DynaSwapApp.models import Roles
 from DynaSwapApp.models import Users
 from DynaSwapApp.services.register import register
-from DynaSwapApp.services.face_models import MTCNN
+from DynaSwapApp.services.face_models.MTCNN import MtcnnService
 from DynaSwapApp.services.face_models import FNET
 
 # Create your views here.
 class HomePageView(TemplateView):
     def get(self, request, **kwargs):
+        MtcnnService()
         return render(request, 'index.html')
 
 class RegisterPageView(TemplateView):
@@ -56,19 +57,16 @@ class RegisterView(TemplateView):
                     ext = format.split('/')[-1] 
                     image = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
                     images.append(image)
-
-            # Check if username is already taken
-            user_found = Users.objects.filter(user_name=user_name)
-            if user_found.count() > 0:
-                return JsonResponse({"status" : "taken", "error" : "Username " + user_name + " has already been registered."})
         except Exception as e:
             return JsonResponse({"status" : "false", "error" : "POST data error. " + str(e)})
+
+        ### Check if username is already taken
+        user_found = Users.objects.filter(user_name=user_name)
+        if user_found.count() > 0:
+            return JsonResponse({"status" : "taken", "error" : "Username " + user_name + " has already been registered."})
         
         ### Process POST data form
-        # Load face models and create registration object
-        mtcnn_model = MTCNN.MTCNN()
-        facenet_model = FNET.FNET()
-        reg = register(mtcnn_model,facenet_model)
+        reg = register()
         try:
             # Get role info corresponding to chosen role
             role_instance = Roles.objects.filter(role_name=role)[0]

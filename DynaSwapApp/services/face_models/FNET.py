@@ -3,27 +3,27 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import os
+import asyncio
 
-class FNET():
+class FnetService():
+    __instance = None
+
+    class __FnetModel:
+        def __init__(self):
+            self.sess = None
+            self.images_placeholder = None
+            self.embeddings = None
+            self.phase_train_placeholder  = None
+            self.embedding_size = 0
+
     def __init__(self):
-        #print('Loading feature extraction model')
-    
-        self.sess = tf.Session()
-        
-        # 20180408-102900//20180408-102900.pb 0.9965 VGGFace2 Inception ResNet v1
-        #model_path = "DynaSwapApp//services//face_models//20180408-102900.pb"
-        dir = os.path.dirname(__file__)
-        model_path = os.path.join(dir, '20180408-102900.pb')
-        facenet.load_model(model_path)
-        
+        if not FnetService.__instance:
+            FnetService.__instance = FnetService.__FnetModel()
+            self.initialized = True
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(self.background())
 
-        # Get input and output tensors
-        self.images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
-        self.embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
-        self.phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
-        self.embedding_size = self.embeddings.get_shape()[1]
-
-    def prewhiten(x):
+    def prewhiten(self,x):
         mean = np.mean(x)
         std = np.std(x)
         std_adj = np.maximum(std, 1.0/np.sqrt(x.size))
@@ -40,14 +40,33 @@ class FNET():
             image = cv2.resize(image,(160,160))
         
         # Normalize image
-        image = FNET.prewhiten(image)
+        image = self.prewhiten(image)
 
         # Put image into input array
         input = np.zeros((1, 160, 160, 3))
         input[0,:,:,:] = image
 
         # Perform FaceNet feature embedding
-        feed_dict = { self.images_placeholder:input, self.phase_train_placeholder:False }
-        output = self.sess.run(self.embeddings, feed_dict=feed_dict)
+        feed_dict = { self.__instance.images_placeholder:input, self.__instance.phase_train_placeholder:False }
+        output = self.__instance.sess.run(self.__instance.embeddings, feed_dict=feed_dict)
 
         return output
+
+    @staticmethod
+    async def initMtcnnModel(self):
+        self.__instance.sess = tf.Session()
+        # 20180408-102900//20180408-102900.pb 0.9965 VGGFace2 Inception ResNet v1
+        dir = os.path.dirname(__file__)
+        model_path = os.path.join(dir, '20180408-102900.pb')
+        facenet.load_model(model_path)
+    
+        # Get input and output tensors
+        self.__instance.images_placeholder = tf.get_default_graph().get_tensor_by_name("input:0")
+        self.__instance.embeddings = tf.get_default_graph().get_tensor_by_name("embeddings:0")
+        self.__instance.phase_train_placeholder = tf.get_default_graph().get_tensor_by_name("phase_train:0")
+        self.__instance.embedding_size = self.__instance.embeddings.get_shape()[1]
+    
+    @classmethod
+    async def background(self):
+        asyncio.ensure_future(self.initMtcnnModel(self))
+        return

@@ -1,27 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <!--- load django staticfiles
-    ================================================== -->
-    {% load static %}
 
-    
-    <!-- favicons
-    ================================================== -->
+    <!--- load django staticfiles =====================================================================
+    =================================================================================================== -->
+    {% load static %}
+    <!-- ==============================================================================================
+    =================================================================================================== -->
+   
+    <!-- favicons =====================================================================================
+    =================================================================================================== -->
     <link rel="shortcut icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
     <link rel="icon" href="{% static "/images/iu_logo.png" %}" type="image/x-icon">
+    <!-- ==============================================================================================
+    =================================================================================================== -->
+
+    <!-- CSS ==========================================================================================
+    =================================================================================================== -->
+    <link rel="stylesheet" href="{% static "/css/choose-role-dialog.css" %}">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css">
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
 </head>
 
 <body>
-
+    <!-- Webpage Objects ==============================================================================
+    =================================================================================================== -->
     <h1>DynaSWAP Secure Facial Authentication</h1>
     <h2>Authenticate</h2>
     <p></p>
     
     <button id="home">Home</button>
 
+    <p></p>
+    <p></p>
+    <table>
+        <tr>
+            <td>Username</td>
+            <td><input type="text" id="userName"></td>
+        </tr>
+        <tr>
+            <td><button id="chooseRoleButton">Choose Role</button></td>
+            <td><input readonly type="text" id="selectedRole"></td>
+        </tr>        
+    </table>
 
+    <p>
+        Click <b>Start/Stop</b> button to start or stop the camera capture.<br>
+        Click <b>Snap</b> button to capture a picture from the camera stream.<br>
+        Click <b>Submit Image</b> button to submit captured image.<br>
+        Click <b>Authenticate</b> button to authenticated with submitted image.<br>
+    </p>
+    <div>
+        <div class="control"><button id="startAndStopButton" disabled>Start</button></div>
+        <div class="control"><button id="snapButton" enabled>Snap</button></div>
+        <div class="control"><button id="submitImageButton" enabled>Submit Image</button></div>
+        <div class="control"><button id="authenticateButton" enabled>Authenticate</button></div>
+    </div>
+    <p class="err" id="errorMessage"></p>
+    <div>
+        <table cellpadding="0" cellspacing="0" width="0" border="0">
+        <tr>
+            <td>
+                <video id="videoInput" width=480 height=320></video>
+            </td>
+            <td>
+                <canvas id="canvasOutput" width=480 height=320></canvas>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td>
+                <div id="videoStreamCaption" class="caption">Video Stream</div>
+            </td>
+            <td>
+                <div id="capturedPictureCaption" class="caption">Captured Picture</div>
+            </td>
+            <td></td>
+            <td></td>
+        </tr>
+        </table>
+    </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
+    
+    <!-- Django file uploader =========================================================================
+    =================================================================================================== -->
+    <div style="display: none">
+        <form id="authenticationForm" action="/authentication/" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+        </form>
+    </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
+
+
+    <!-- Choose role dialog ===========================================================================
+    =================================================================================================== -->
+    <div id="dialog" title="Choose Role">
+        <form action="" method="post">
+            <img id="roleSampleImg" style="display: block; margin-left: auto; margin-right: auto;" />
+            <select id="roleSelect">
+            </select>
+            <div id="buttonOk">OK</div>
+        </form>
+    </div>
+    <!-- ==============================================================================================
+    =================================================================================================== -->
+
+    <!-- Java Script ==================================================================================
+    =================================================================================================== -->
+    <!-- <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <!-- <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <!-- <script src="{% static "/js/opencv.js" %}"></script> -->
+    <!-- <script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script> -->
+    <script src="{% static "/js/utils.js" %}"></script> 
+    <!-- <script src="https://docs.opencv.org/master/utils.js" type="text/javascript"></script> -->
+    <!-- ==============================================================================================
+    =================================================================================================== -->
 
     <!-- Java Script
     ================================================== -->
@@ -32,10 +132,61 @@
 
     <script>
     
+    ////////////////////////////////////////////////////////////////////////////////////
+    //////  Variables /////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////
+    //////  Constants //////////////////////////
+    /////////////////////////////////////////////
+    const OPENCV_URL = '{% static "/js/opencv.js" %}';
+    
+    /////////////////////////////////////////////
+    //////  Intialize Variables ////////////////
+    /////////////////////////////////////////////
+    let capturedImages = new Array();
+    let utils = new Utils('errorMessage');
+    let streaming = false;
+    let snapImage = new Image();
+    
+    /////////////////////////////////////////////
+    //////  Video/Image Regions ////////////////
+    /////////////////////////////////////////////
+    let videoInput = document.getElementById('videoInput');
+    let canvasOutput = document.getElementById('canvasOutput');
+    let canvasContext = canvasOutput.getContext('2d');
+    
+    /////////////////////////////////////////////
+    //////  Buttons ////////////////////////////
+    /////////////////////////////////////////////
+    let chooseRoleButton = document.getElementById('chooseRoleButton');
+    let startAndStopButton = document.getElementById('startAndStopButton');
+    let snapButton = document.getElementById('snapButton');
+    let submitImageButton = document.getElementById('submitImageButton');
+    let registerButton = document.getElementById('authenticateButton');
+    
+    /////////////////////////////////////////////
+    //////  Text Regions ///////////////////////
+    /////////////////////////////////////////////
+    let caption1 = document.getElementById('videoStreamCaption');
+    let caption2 = document.getElementById('capturedPictureCaption');
+    
+    ////////////////////////////////////////////////////////////////////////////////////
+    //////  Document Startup //////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
     $( document ).ready(function() {
         $("#home").click(function() {
             window.location.href = "/";
         });
+
+        /////////////////////////////////////////////
+        //////  Startup Setup //////////////////////
+        /////////////////////////////////////////////
+        snapButton.style.visibility = "hidden";
+        submitImageButton.style.visibility = "hidden";
+        authenticateButton.style.visibility = "hidden";
+        caption1.style.visibility = "hidden";
+        caption2.style.visibility = "hidden";
+
     })
 
     </script> 

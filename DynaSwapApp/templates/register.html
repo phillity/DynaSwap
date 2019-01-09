@@ -18,7 +18,7 @@
     <!-- CSS ==========================================================================================
     =================================================================================================== -->
     <link rel="stylesheet" href="{% static "/css/choose-role-dialog.css" %}">
-    <link rel="stylesheet" href="{% static "/css/jquery-ui.min.css" %}">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css">
     <!-- ==============================================================================================
     =================================================================================================== -->
 
@@ -113,14 +113,9 @@
 
     <!-- Java Script ==================================================================================
     =================================================================================================== -->
-    <!-- <script src="{% static "/js/jquery-3.2.1.min.js" %}"></script> -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <!-- <script src="{% static "/js/jquery-ui-1.12.1.min.js" %}"></script> -->
     <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
-    <!-- <script src="{% static "/js/opencv.js" %}"></script> -->
-    <!-- <script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script> -->
     <script src="{% static "/js/utils.js" %}"></script> 
-    <!-- <script src="https://docs.opencv.org/master/utils.js" type="text/javascript"></script> -->
     <!-- ==============================================================================================
     =================================================================================================== -->
 
@@ -132,7 +127,7 @@
     /////////////////////////////////////////////
     //////  Constants //////////////////////////
     /////////////////////////////////////////////
-    const OPENCV_URL = '{% static "/js/opencv.js" %}';
+    const OPENCV_URL = "https://docs.opencv.org/master/opencv.js";
     const NUM_SUBMITTED_IMAGES_REQUIRED = 3;
 
     /////////////////////////////////////////////
@@ -182,8 +177,8 @@
         imageReqSpan.textContent = NUM_SUBMITTED_IMAGES_REQUIRED;
         imageSubSpan.textContent = capturedImages.length;
         snapButton.style.visibility = "hidden";
-        registerButton.style.visibility = "hidden";
         submitImageButton.style.visibility = "hidden";
+        registerButton.style.visibility = "hidden";
         caption1.style.visibility = "hidden";
         caption2.style.visibility = "hidden";
 
@@ -211,7 +206,7 @@
             },
             error: function (error) {
                 console.log(error);
-                alert('Sorry and unexpected error has occurred, please try again');
+                alert('Sorry an unexpected error has occurred, please try again');
             },
         });
     
@@ -295,6 +290,7 @@
                 canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
                 utils.stopCamera();
                 streaming = false;
+
                 imageCounterDiv.style.visibility = "hidden";
                 startAndStopButton.style.visibility = "hidden";
                 snapButton.style.visibility = "hidden";
@@ -347,14 +343,14 @@
                         window.location.href = "/";
                     }
                     else {
-                        let errMsg = "Sorry and unexpected error has occurred, please try again";
+                        let errMsg = "Sorry an unexpected error has occurred, please try again";
                         alert(errMsg);
                         window.location.href = "/";
                     }
                 },
                 error: function (error) {
                     console.log(error);
-                    alert('Sorry and unexpected error has occurred, please try again');
+                    alert('Sorry an unexpected error has occurred, please try again');
                 },
             });
         });

@@ -4,25 +4,22 @@ import sys
 import os
 from sklearn.svm import SVC
 from DynaSwapApp.services.face_utils import face_utils
-from DynaSwapApp.services.face_models import MTCNN
-from DynaSwapApp.services.face_models import FNET
+from DynaSwapApp.services.face_models.MTCNN import MtcnnService
+from DynaSwapApp.services.face_models.FNET import FnetService
 
 class register:
-    def __init__(self,mtcnn_model,facenet_model):
-        # Create face_utils object with FaceNet and MTCNN models
-        self.__face = face_utils(mtcnn_model,facenet_model)
-
     def register_image(self,user_id,image,rs_id):
+        face_util = face_utils()
         # Preprocess
         try:
-            image = self.__face.align(image)
+            image = face_util.align(image)
         except:
-            raise ValueError("Multiple or no faces deted in image.")
-            print("Multiple or no faces deted in image.")
+            raise ValueError("Multiple or no faces detected in image.")
+            print("Multiple or no faces detected in image.")
         
         # Feature Extraction
-        feature = self.__face.extract(image)
-        feature_flip = self.__face.extract(cv2.flip(image,1))
+        feature = face_util.extract(image)
+        feature_flip = face_util.extract(cv2.flip(image,1))
         
         # Get RS Feature from database
         dir = os.path.dirname(__file__)
@@ -34,8 +31,8 @@ class register:
         rs_feature = np.reshape(rs_feature[:-1],(1,512))
 
         # BioCapsule Generation
-        bc = self.__face.bc_fusion(user_id,feature,rs_feature)
-        bc_flip = self.__face.bc_fusion(user_id,feature_flip,rs_feature)
+        bc = face_util.bc_fusion(user_id,feature,rs_feature)
+        bc_flip = face_util.bc_fusion(user_id,feature_flip,rs_feature)
         bcs = np.vstack([bc,bc_flip])
 
         # Get BioCaspules for other RSs
@@ -44,8 +41,8 @@ class register:
         for rs_idx in rs_ids:
             rs_feature = rs_data[rs_idx,:]
             rs_feature = np.reshape(rs_feature[:-1],(1,512))
-            bc = self.__face.bc_fusion(0.,feature,rs_feature)
-            bc_flip = self.__face.bc_fusion(0.,feature_flip,rs_feature)
+            bc = face_util.bc_fusion(0.,feature,rs_feature)
+            bc_flip = face_util.bc_fusion(0.,feature_flip,rs_feature)
             bcs = np.vstack([bcs,bc])
             bcs = np.vstack([bcs,bc_flip])
 
@@ -65,7 +62,7 @@ class register:
         y = train[:,-1]
         train = train[:,:-1]
 
-        classifier = SVC()
+        classifier = SVC(kernel='rbf',C=1.0,degree=3,gamma='auto')
         classifier.fit(train,y)
 
         return classifier

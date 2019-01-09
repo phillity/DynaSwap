@@ -1,14 +1,10 @@
 import cv2
 import numpy as np
 import sys
-from DynaSwapApp.services.face_models import MTCNN
-from DynaSwapApp.services.face_models import FNET
+from DynaSwapApp.services.face_models.MTCNN import MtcnnService
+from DynaSwapApp.services.face_models.FNET import FnetService
 
 class face_utils:
-    def __init__(self,mtcnn_model,facenet_model):
-        self.__mtcnn_model = mtcnn_model
-        self.__facenet_model = facenet_model
-
     ########## PREPROCESSING #########################
     def align(self,image):
         # Convert image to BGR if grayscale
@@ -21,7 +17,7 @@ class face_utils:
         # Get face bounding box and landmarks using MTCNN method
         # Face bounding box points [top_left,bottom_right]
         # Face landmark points [eye_right,eye_left,nose,mouth_right,mouth_left]
-        face_bb, face_pts = self.__mtcnn_model.detect(image_rgb)
+        face_bb, face_pts = MtcnnService().detect(image_rgb)
 
         # Get number of faces detected
         nrof_faces = face_bb.shape[0]
@@ -84,7 +80,7 @@ class face_utils:
 
         # Get face bounding box and landmarks using MTCNN method
         # Face bounding box points [top_left,bottom_right]
-        bb, pts = self.__mtcnn_model.detect(image_rgb)
+        bb, pts = MtcnnService().detect(image_rgb)
 
         # Get number of faces detected
         nrof_faces = bb.shape[0]
@@ -123,7 +119,7 @@ class face_utils:
     ########## FEATURE EXTRACTION ####################
     def extract(self,image):
         image = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-        feature = self.__facenet_model.feature(image)
+        feature = FnetService().feature(image)
         return feature
     ##################################################
 
