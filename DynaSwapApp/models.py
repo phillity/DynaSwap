@@ -22,7 +22,7 @@ class Users(models.Model):
     role = models.ForeignKey(Roles, on_delete=models.CASCADE)
     bio_capsule = models.BinaryField()
     classifier = models.BinaryField()
-    created_on = models.DateTimeField(auto_now_add=True)
+    created_on = models.DateTimeField(auto_now=True)
     last_authenticated = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

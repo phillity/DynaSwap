@@ -282,7 +282,6 @@
         submitImageButton.addEventListener('click', () => {
             submitImageButton.style.visibility = "hidden";
             capturedImages.push(snapImage);
-            //$("#numSoFar").text(capturedImages.length);
             imageSubSpan.textContent = capturedImages.length;
 
             if (capturedImages.length === NUM_SUBMITTED_IMAGES_REQUIRED)
@@ -329,7 +328,7 @@
                 contentType: false,
                 success: function(data) {
                     if (data["status"] === "true") {
-                        alert("Successfully Registered: " + $("#userName").val());
+                        alert("Successfully registered " + $("#userName").val() + ".");
                         window.location.href = "/";
                     }
                     else if (data["status"] === "taken") {
@@ -356,8 +355,8 @@
         });
 
         utils.loadOpenCv(() => {
-        startAndStopButton.removeAttribute('disabled');
-    });
+            startAndStopButton.removeAttribute('disabled');
+        });
     })
 
     ////////////////////////////////////////////////////////////////////////////////////

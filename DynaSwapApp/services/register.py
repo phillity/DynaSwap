@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import sys
 import os
 from sklearn.svm import SVC
 from DynaSwapApp.services.face_utils import face_utils
@@ -8,7 +7,7 @@ from DynaSwapApp.services.face_models.MTCNN import MtcnnService
 from DynaSwapApp.services.face_models.FNET import FnetService
 
 class register:
-    def register_image(self,user_id,image,rs_id):
+    def register_image(self,image,rs_id):
         face_util = face_utils()
         # Preprocess
         try:
@@ -31,8 +30,8 @@ class register:
         rs_feature = np.reshape(rs_feature[:-1],(1,512))
 
         # BioCapsule Generation
-        bc = face_util.bc_fusion(user_id,feature,rs_feature)
-        bc_flip = face_util.bc_fusion(user_id,feature_flip,rs_feature)
+        bc = face_util.bc_fusion(1.,feature,rs_feature)
+        bc_flip = face_util.bc_fusion(1.,feature_flip,rs_feature)
         bcs = np.vstack([bc,bc_flip])
 
         # Get BioCaspules for other RSs
@@ -45,24 +44,19 @@ class register:
             bc_flip = face_util.bc_fusion(0.,feature_flip,rs_feature)
             bcs = np.vstack([bcs,bc])
             bcs = np.vstack([bcs,bc_flip])
-
         return bcs
 
-    def register_classifier(self,user_id,bcs):
+    def register_classifier(self,bcs):
         # Load dummy features to use as negative examples
         dir = os.path.dirname(__file__)
         filename = os.path.join(dir, 'database','dummy_bc.npy')
         dummy = np.load(filename)
 
-        idx = np.where(bcs[:,-1] == user_id)
-        bcs[idx,-1] = 1.
-        bcs = bcs.astype(float)
-
         train = np.vstack([bcs,dummy])
         y = train[:,-1]
         train = train[:,:-1]
 
-        classifier = SVC(kernel='rbf',C=1.0,degree=3,gamma='auto')
+        classifier = SVC(kernel='rbf',C=1.0,degree=3,gamma='auto',probability=True)
         classifier.fit(train,y)
 
         return classifier
