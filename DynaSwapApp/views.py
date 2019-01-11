@@ -45,7 +45,7 @@ class RejectedPageView(TemplateView):
         userName = request.GET.get('userName')
         confidence = request.GET.get('confidence')
         roleId = request.GET.get('roleId')
-        return render(request, 'accepted.html', { 'userName' : userName, 'confidence' : confidence, 'roleId' :  roleId})
+        return render(request, 'rejected.html', { 'userName' : userName, 'confidence' : confidence, 'roleId' :  roleId})
 
 class GetRolesView(TemplateView):
     def get(self, request, **kwargs):

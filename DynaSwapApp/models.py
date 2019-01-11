@@ -12,7 +12,7 @@ class Roles(models.Model):
 
 # INSERT INTO dynaswapapp_roles(role_name,url)
 #   VALUES('President','/images/rs_1.jpg'),
-#         ('CEO','/images/rs_2.jpg'),
+#         ('Vice President','/images/rs_2.jpg'),
 #         ('Manager','/images/rs_3.jpg'),
 #         ('Worker','/images/rs_4.jpg')
 
