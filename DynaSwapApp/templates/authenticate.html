@@ -161,13 +161,13 @@
     //////  Document Startup //////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////
     $( document ).ready(function() {
-        $("#home").click(function() {
-            window.location.href = "/";
-        });
-        
         /////////////////////////////////////////////
         //////  Startup Setup //////////////////////
         /////////////////////////////////////////////
+        let userName = "{{userName}}";
+        if (userName != 'None') {
+            $("#userName").val(userName);
+        }
         snapButton.style.visibility = "hidden";
         submitImageButton.style.visibility = "hidden";
         authenticateButton.style.visibility = "hidden";
@@ -188,10 +188,15 @@
                     {
                         $select.append("<option value='" + value.url + "'>" + value.role + "</option>");
                     });
-
-                    // Set the sample image
+                    
                     $("#roleSampleImg").attr("src", $select.val());
-                    $("#selectedRole").val($("#roleSelect>option:selected").text());
+                    let roleId = "{{roleId}}";
+                    if (roleId != 'None') {
+                        $("#selectedRole").val(roleId);
+                    }
+                    else {
+                        $("#selectedRole").val($("#roleSelect>option:selected").text());
+                    }
                 }
                 else {
                 }
@@ -232,6 +237,13 @@
         /////////////////////////////////////////////
         chooseRoleButton.addEventListener('click', () => {
             $("#dialog").dialog("open");
+        });
+
+        /////////////////////////////////////////////
+        //////  Home Button Action Listener ////////
+        /////////////////////////////////////////////
+        $("#home").click(function() {
+            window.location.href = "/";
         });
 
         /////////////////////////////////////////////
@@ -305,14 +317,14 @@
                 contentType: false,
                 success: function(data) {
                     if (data["status"] === "true") {
-                        let sucessMsg = data["error"];
-                        alert(sucessMsg);
-                        window.location.href = "/";
+                        let userName = data["userName"];
+                        let confidence = data["confidence"];
+                        window.location.href = "/accepted_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
                     else if (data["status"] === "false") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
-                        window.location.href = "/";
+                        let userName = data["userName"];
+                        let confidence = data["confidence"];
+                        window.location.href = "/rejected_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
                     else if (data["status"] === "not_taken") {
                         let errMsg = data["error"];
