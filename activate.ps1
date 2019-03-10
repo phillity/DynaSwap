@@ -1,1 +1,1 @@
-invoke-expression -Command C:\Users\Tyler\Envs\DjangoEnv\Scripts\activate.ps1
+invoke-expression -Command C:\Users\$env:UserName\Envs\DjangoEnv\Scripts\activate.ps1
