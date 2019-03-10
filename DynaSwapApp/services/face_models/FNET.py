@@ -53,7 +53,7 @@ class FnetService():
         return output
 
     @staticmethod
-    async def initMtcnnModel(self):
+    async def initFnetModel(self):
         self.__instance.sess = tf.Session()
         # 20180408-102900//20180408-102900.pb 0.9965 VGGFace2 Inception ResNet v1
         dir = os.path.dirname(__file__)
@@ -68,5 +68,5 @@ class FnetService():
     
     @classmethod
     async def background(self):
-        asyncio.ensure_future(self.initMtcnnModel(self))
+        asyncio.ensure_future(self.initFnetModel(self))
         return
