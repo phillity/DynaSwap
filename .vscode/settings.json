@@ -1,3 +1,7 @@
 {
-    "python.pythonPath": "C:\\Users\\Tyler\\envs\\DjangoEnv\\Scripts\\python.exe"
+    "python.pythonPath": "C:\\Anaconda3\\envs\\py36\\python.exe",
+    "python.linting.pylintEnabled": false,
+    "python.linting.pep8Enabled": true,
+    "python.linting.pep8Args": ["--ignore=E501,E266,E265"],
+    "python.linting.enabled": true
 }

@@ -11,6 +11,8 @@
 staticfiles/*
 media/*
 
+*my.cnf*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

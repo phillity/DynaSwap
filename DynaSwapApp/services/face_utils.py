@@ -4,7 +4,7 @@ from DynaSwapApp.services.face_models.MTCNN import MtcnnService
 from DynaSwapApp.services.face_models.FNET import FnetService
 
 
-class face_utils:
+class FaceUtils:
     ########## PREPROCESSING #########################
     def align(self, image):
         # Convert image to BGR if grayscale

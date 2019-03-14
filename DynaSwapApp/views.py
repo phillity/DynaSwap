@@ -14,6 +14,8 @@ from django.views.generic import TemplateView
 from django.core.files.base import ContentFile
 from DynaSwapApp.models import Roles
 from DynaSwapApp.models import Users
+from DynaSwapApp.models import UsersRoles
+from DynaSwapApp.models import DynaSwapUsers
 from DynaSwapApp.services.register import register
 from DynaSwapApp.services.authenticate import authenticate
 from django.utils import timezone
@@ -50,8 +52,8 @@ class RejectedPageView(TemplateView):
 class GetRolesView(TemplateView):
     def get(self, request, **kwargs):
         roles = []
-        for role in Roles.objects.all().only('role_name', 'url'):
-            roles.append({"role" : role.role_name, "url" : static(role.url)})
+        for role in Roles.objects.all().only('role', 'url'):
+            roles.append({"role" : role.role, "url" : static(role.url)})
         return JsonResponse({"status": "true", "roles" : roles})
 
 class RegisterView(TemplateView):
@@ -77,6 +79,23 @@ class RegisterView(TemplateView):
             # Extract data
             user_name = request.POST.get("userName", "")
             role = request.POST.get("role", "")
+
+            # Check username exists
+            user_found = Users.objects.filter(username=user_name)
+            if user_found.count() < 1:
+                return JsonResponse({"status" : "not_taken", "error" : "Username " + user_name + " has not been registered."})
+
+            # Check if already registered
+            user_instance = user_found[0]
+            dynaswap_user = DynaSwapUsers.objects.filter(dynaswap_user_id=user_instance.user_id, role=role)
+            if dynaswap_user.count() > 0:
+                return JsonResponse({"status" : "taken", "error" : user_name + " already registered as " + role + " role."})
+            
+            # Check user_role pair exists
+            user_role = UsersRoles.objects.filter(user_id=user_instance.user_id, role=role)
+            if user_role.count() < 1:
+                return JsonResponse({"status" : "invalid_pair", "error" : user_name + " cannot be registered as " + role + " role."})
+
             images = []
             for key, value in request.POST.items():
                 if key[:5] == "image":
@@ -86,31 +105,22 @@ class RegisterView(TemplateView):
                     images.append(image)
         except Exception as e:
             return JsonResponse({"status" : "false", "error" : "POST data error. " + str(e)})
-
-        ### Check if username is already taken
-        user_found = Users.objects.filter(user_name=user_name)
-        if user_found.count() > 0:
-            return JsonResponse({"status" : "taken", "error" : "Username " + user_name + " has already been registered."})
         
         ### Process POST data form
         try:
-            # Get role info corresponding to chosen role
-            role_instance = Roles.objects.filter(role_name=role)[0]
-            role_id = role_instance.id
-
             # Convert submited images to biocapsules
-            bcs = np.empty((0,513))
+            bcs = np.empty((0,514))
             for image in images:
                 stream = image.file
                 image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
-                bc = self.__reg.register_image(image,role_id)
-                bcs = np.vstack([bcs,bc])
+                bc = self.__reg.register_image(image, role)
+                bcs = np.vstack([bcs, bc])
         except Exception as e:
             return JsonResponse({"status" : "image", "error" : "Invalid input image. " + str(e)})
 
         ### Update database
         try:
-            t = threading.Thread(target=self.update_database,args=(user_name,role_instance,bcs))
+            t = threading.Thread(target=self.update_database, args=(user_name, role_instance, bcs))
             t.setDaemon(True)
             t.start()
         except Exception as e:
@@ -162,7 +172,7 @@ class AuthenticateView(TemplateView):
         ### Process POST data form
         try:
             # Get role info corresponding to chosen role
-            role_instance = Roles.objects.filter(role_name=role)[0]
+            role_instance = Roles.objects.filter(role=role)[0]
             role_id = role_instance.id
             
             # Convert submited images to biocapsules
@@ -200,3 +210,15 @@ class AuthenticateView(TemplateView):
             return JsonResponse({"status" : "error"})
 
         return JsonResponse({"status" : "true", "userName" : user_name, "confidence" : prob_string})
+
+class GetUserView(TemplateView):
+    def get(self, request, **kwargs):
+        try:
+            user_name = request.GET.get('userName')
+            user_found = Users.objects.filter(username=user_name)
+            if user_found.count() < 1:
+                return JsonResponse({"status": "unknown"})
+
+            return JsonResponse({"status": "found"})
+        except Exception as e:
+            return JsonResponse({"status" : "exception", "error" : str(e)})
