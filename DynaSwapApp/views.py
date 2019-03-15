@@ -89,19 +89,20 @@ class RegisterView(TemplateView):
             # Check username exists
             user_found = Users.objects.filter(username=user_name)
             if user_found.count() < 1:
-                return JsonResponse({'status': 'not_taken', 'error': 'Username ' + user_name + ' has not been registered.'})
+                return JsonResponse({'status': 'unknown_user', 'error': 'Username ' + user_name + ' has not been registered.'})
 
             # Check if already registered
             user_instance = user_found[0]
             dynaswap_user = DynaSwapUsers.objects.filter(dynaswap_user_id=user_instance.user_id, role=role)
             if dynaswap_user.count() > 0:
-                return JsonResponse({'status': 'taken', 'error': user_name + ' already registered as ' + role + ' role.'})
+                return JsonResponse({'status': 'already_registered', 'error': user_name + ' already registered as ' + role + ' role.'})
 
             # Check user_role pair exists
             user_role = UsersRoles.objects.filter(user_id=user_instance.user_id, role=role)
             if user_role.count() < 1:
-                return JsonResponse({'status': 'invalid_pair', 'error': user_name + ' cannot be registered as ' + role + ' role.'})
+                return JsonResponse({'status': 'invalid_user_role_combo', 'error': user_name + ' cannot be registered as ' + role + ' role.'})
 
+            # Extract uploaded images into byte array elements
             images = []
             for key, value in request.POST.items():
                 if key[:5] == 'image':
@@ -109,11 +110,7 @@ class RegisterView(TemplateView):
                     ext = format.split('/')[-1]
                     image = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
                     images.append(image)
-        except Exception as e:
-            return JsonResponse({'status': 'false', 'error': 'POST data error. ' + str(e)})
 
-        ### Process POST data form
-        try:
             # Convert submited images to biocapsules
             bcs = np.empty((0, 514))
             for image in images:
@@ -121,16 +118,13 @@ class RegisterView(TemplateView):
                 image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
                 bc = self.__reg.register_image(image, role)
                 bcs = np.vstack([bcs, bc])
-        except Exception as e:
-            return JsonResponse({'status': 'image', 'error': 'Invalid input image. ' + str(e)})
 
-        ### Update database
-        try:
+            # Update database
             t = threading.Thread(target=self.update_database, args=(user_name, role_instance, bcs))
             t.setDaemon(True)
             t.start()
         except Exception as e:
-            return JsonResponse({'status': 'error'})
+            return JsonResponse({'status': 'error', 'error': str(e)})
 
         return JsonResponse({'status': 'true'})
 
@@ -161,36 +155,24 @@ class AuthenticateView(TemplateView):
         ### Get POST data form
         try:
             # Extract data
-            user_name = request.POST.get('userName', '')
+            user_id = request.POST.get('userId', '')
             role = request.POST.get('role', '')
             temp_image = request.POST.get('image', '')
             format, imgstr = temp_image.split(';base64,')
             ext = format.split('/')[-1]
             image = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-        except Exception as e:
-            return JsonResponse({'status': 'false', 'error': 'POST data error. ' + str(e)})
 
-        ### Check if username is already registered
-        user_found = Users.objects.filter(user_name=user_name)
-        if user_found.count() < 1:
-            return JsonResponse({'status': 'not_taken', 'error': 'Username ' + user_name + ' has not been registered.'})
-        user_found = user_found[0]
-
-        ### Process POST data form
-        try:
-            # Get role info corresponding to chosen role
-            role_instance = Roles.objects.filter(role=role)[0]
-            role_id = role_instance.id
+            ### Get user
+            user_found = DynaSwapUsers.objects.filter(user_id=user_id, role=rool)
+            if user_found.count() < 1:
+                return JsonResponse({'status': 'not_registered', 'error': 'Username/Role has not been registered.'})
+            user_found = user_found[0]
 
             # Convert submited images to biocapsules
             stream = image.file
             image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
             bc = self.__auth.authenticate_image(image, role_id)
-        except Exception as e:
-            return JsonResponse({'status': 'image', 'error': 'Invalid input image. ' + str(e)})
 
-        ### Perform classification, Update database
-        try:
             # Get bcs and classifier corresponding to username
             bcs = pickle.loads(user_found.bio_capsule)
             classifier = pickle.loads(user_found.classifier)
@@ -201,7 +183,7 @@ class AuthenticateView(TemplateView):
 
             # Classification outcome
             if not classification:
-                return JsonResponse({'status': 'false', 'userName': user_name, 'confidence': prob_string})
+                return JsonResponse({'status': 'authenticate_failed', 'userName': user_name, 'confidence': prob_string})
 
             # Update user with authentication time, new bc, new classifier
             if prob > 0.70:
@@ -214,19 +196,40 @@ class AuthenticateView(TemplateView):
                 user_found.last_authenticated = timezone.now()
                 user_found.save()
         except Exception as e:
-            return JsonResponse({'status': 'error'})
+            return JsonResponse({'status': 'error', 'error': str(e)})
 
-        return JsonResponse({'status': 'true', 'userName': user_name, 'confidence': prob_string})
+        return JsonResponse({'status': 'authenticate_success', 'userName': user_name, 'confidence': prob_string})
 
 
-class GetUserView(TemplateView):
+class GetUserRoleView(TemplateView):
     def get(self, request, **kwargs):
         try:
             user_name = request.GET.get('userName')
+            role = request.GET.get('role')
+            checkRegistered = request.GET.get('checkRegistered') == 'true'
+
+            # Check valid user
             user_found = Users.objects.filter(username=user_name)
             if user_found.count() < 1:
                 return JsonResponse({'status': 'unknown'})
+            user_instance = user_found[0]
 
-            return JsonResponse({'status': 'found'})
+            # Check valid user/role
+            user_role_found = UsersRoles.objects.filter(user_id=user_instance.user_id, role=role)
+            if user_role_found.count() < 1:
+                return JsonResponse({'status': 'unknown'})
+
+            dynaswap_user = DynaSwapUsers.objects.filter(dynaswap_user_id=user_instance.user_id, role=role)
+
+            if checkRegistered:
+                # Check not already registered
+                if dynaswap_user.count() == 0:
+                    return JsonResponse({'status': 'not_registered'})
+            else:
+                # Check not already registered
+                if dynaswap_user.count() > 0:
+                    return JsonResponse({'status': 'already_registered'})
+
+            return JsonResponse({'status': 'success', 'user_id': user_instance.user_id})
         except Exception as e:
             return JsonResponse({'status': 'exception', 'error': str(e)})

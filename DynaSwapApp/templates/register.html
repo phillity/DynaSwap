@@ -38,15 +38,16 @@
     <table>
         <tr>
             <td>Username</td>
-        <td>
-            <input type="text" id="userName">
-            <br /><div id="userNameMessage" style="font-size: medium; font-weight: bold; color: red; display: none;" />
-        </td>
+            <td><input type="text" id="userName"></td>
         </tr>
         <tr>
             <td><button id="chooseRoleButton">Choose Role</button></td>
             <td><input readonly type="text" id="selectedRole"></td>
-        </tr>        
+        </tr>
+        <td colspan="2">
+            <input hidden type="text" id="userId">
+            <div id="userNameRoleMessage" style="font-size: medium; font-weight: bold; color: red; display: none;" />
+        </td>                    
     </table>
 
     <p>
@@ -211,40 +212,6 @@
             },
         });
     
-        $("#userName").blur(function() {
-            let userName = $("#userName").val().trim();
-            if (userName.length == 0)
-            {
-                $("#userNameMessage").text("Please enter a user name");
-                $("#userNameMessage").show();
-                return;
-            }
-
-            $.ajax({
-            url: "/get_user/",
-            type: "get",
-            data: { "userName": userName },
-            success: function(data) {
-                if (data["status"] === "found") {
-                    $("#userNameMessage").hide();
-                }
-                else if (data["status"] === "unknown") {
-                    $("#userNameMessage").text("Unknown user name");
-                    $("#userNameMessage").show();
-                }
-                else {  // exception
-                    console.log(data["error"]);
-                    alert('Sorry an unexpected error has occurred, please try again');
-                }
-            },
-            error: function (error) {
-                console.log(error);
-                alert('Sorry an unexpected error has occurred, please try again');
-            },
-        });
-
-        });
-
         /////////////////////////////////////////////
         //////  Role Select UI /////////////////////
         /////////////////////////////////////////////
@@ -289,11 +256,8 @@
         /////////////////////////////////////////////
         startAndStopButton.addEventListener('click', () => {
             if (!streaming) {
-                utils.clearError();
-                utils.startCamera('qvga', onVideoStarted, 'videoInput');
-
-                snapButton.style.visibility = "visible";
-                caption1.style.visibility = "visible";
+                // Check user entries before starting camera
+                ifOkStartCamera();
             } else {
                 utils.stopCamera();
                 onVideoStopped();
@@ -373,24 +337,10 @@
                         alert("Successfully registered " + $("#userName").val() + ".");
                         window.location.href = "/";
                     }
-                    else if (data["not_taken"] === "taken") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
-                        window.location.href = "/";
-                    }
-                    else if (data["status"] === "taken") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
-                        window.location.href = "/";
-                    }
-                    else if (data["status"] === "invalid_pair") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
-                        window.location.href = "/";
-                    }
-                    else if (data["status"] === "image") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
+                    else if (data["status"] === "unknown_user"
+                            || data["status"] === "already_registered"
+                            || data["status"] === "invalid_user_role_combo") {
+                        alert(data["error"]);
                         window.location.href = "/";
                     }
                     else {
@@ -402,6 +352,7 @@
                 error: function (error) {
                     console.log(error);
                     alert('Sorry an unexpected error has occurred, please try again');
+                    window.location.href = "/";
                 },
             });
         });
@@ -455,6 +406,53 @@
             }
         }
         return cookieValue;
+    }
+
+    function ifOkStartCamera() {
+        let userName = $("#userName").val().trim();
+        let role = $("#selectedRole").val();
+        if (userName.length == 0)
+        {
+            $("#userNameRoleMessage").text("Please enter a user name");
+            $("#userNameRoleMessage").show();
+            return;
+        }
+
+        $.get("/get_user_role/", { "userName": userName, "role": role, "checkRegistered": false }).then(
+            function(data) {
+                if (data["status"] === "success") {
+                    $("#userNameRoleMessage").hide();
+                    $("#userId").val(data["user_id"]);
+
+                    // Start camera
+                    utils.clearError();
+                    utils.startCamera('qvga', onVideoStarted, 'videoInput');
+
+                    snapButton.style.visibility = "visible";
+                    caption1.style.visibility = "visible";
+                }
+                else if (data["status"] === "already_registered") {
+                    $("#userNameRoleMessage").text("Username/Role combination already registered");
+                    $("#userNameRoleMessage").show();
+                }                
+                else if (data["status"] === "not_registered") {
+                    $("#userNameRoleMessage").text("Username/Role combination not yet registered");
+                    $("#userNameRoleMessage").show();
+                }
+                else if (data["status"] === "unknown") {
+                    $("#userNameRoleMessage").text("Unknown Username/Role combination");
+                    $("#userNameRoleMessage").show();
+                }
+                else {
+                    console.log(data["error"]);
+                    alert('Sorry an unexpected error has occurred, please try again');
+                }
+            },
+            function(error) {
+                console.log(error);
+                alert('Sorry an unexpected error has occurred, please try again');
+            }
+        );
     }
 
     </script> 

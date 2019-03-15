@@ -43,7 +43,11 @@
         <tr>
             <td><button id="chooseRoleButton">Choose Role</button></td>
             <td><input readonly type="text" id="selectedRole"></td>
-        </tr>        
+        </tr>
+        <td colspan="2">
+            <input hidden type="text" id="userId">
+            <div id="userNameRoleMessage" style="font-size: medium; font-weight: bold; color: red; display: none;" />
+        </td>                
     </table>
 
     <p>
@@ -174,6 +178,8 @@
         caption1.style.visibility = "hidden";
         caption2.style.visibility = "hidden";
 
+        $("#userName").focus();
+        
         /////////////////////////////////////////////
         //////  Role Select Dialogue ///////////////
         /////////////////////////////////////////////
@@ -251,11 +257,8 @@
         /////////////////////////////////////////////
         startAndStopButton.addEventListener('click', () => {
             if (!streaming) {
-                utils.clearError();
-                utils.startCamera('qvga', onVideoStarted, 'videoInput');
-
-                snapButton.style.visibility = "visible";
-                caption1.style.visibility = "visible";
+                // Check user entries before starting camera
+                ifOkStartCamera();
             } else {
                 utils.stopCamera();
                 onVideoStopped();
@@ -303,7 +306,7 @@
             authenticateButton.style.visibility = "hidden";
 
             let data = new FormData($('form').get(0));
-            data.append('userName', $("#userName").val()); 
+            data.append('userId', $("#userId").val()); 
             data.append('role', $("#selectedRole").val()); 
             data.append('image', snapImage);
         
@@ -316,35 +319,30 @@
                 processData: false,
                 contentType: false,
                 success: function(data) {
-                    if (data["status"] === "true") {
+                    if (data["status"] === "authenticate_success") {
                         let userName = data["userName"];
                         let confidence = data["confidence"];
                         window.location.href = "/accepted_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
-                    else if (data["status"] === "false") {
+                    else if (data["status"] === "authenticate_failed") {
                         let userName = data["userName"];
                         let confidence = data["confidence"];
                         window.location.href = "/rejected_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
-                    else if (data["status"] === "not_taken") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
-                        window.location.href = "/";
-                    }
-                    else if (data["status"] === "image") {
-                        let errMsg = data["error"];
-                        alert(errMsg);
+                    else if (data["status"] === "not_registered") {
+                        alert(data["error"]);
                         window.location.href = "/";
                     }
                     else {
-                        let errMsg = "Sorry an unexpected error has occurred, please try again";
-                        alert(errMsg);
+                        console.log(data["error"]);
+                        alert('Sorry an unexpected error has occurred, please try again');
                         window.location.href = "/";
                     }
                 },
                 error: function (error) {
                     console.log(error);
                     alert('Sorry an unexpected error has occurred, please try again');
+                    window.location.href = "/";
                 },
             });
         });
@@ -398,6 +396,53 @@
             }
         }
         return cookieValue;
+    }
+
+    function ifOkStartCamera() {
+        let userName = $("#userName").val().trim();
+        let role = $("#selectedRole").val();
+        if (userName.length == 0)
+        {
+            $("#userNameRoleMessage").text("Please enter a user name");
+            $("#userNameRoleMessage").show();
+            return;
+        }
+
+        $.get("/get_user_role/", { "userName": userName, "role": role, "checkRegistered": true }).then(
+            function(data) {
+                if (data["status"] === "success") {
+                    $("#userNameRoleMessage").hide();
+                    $("#userId").val(data["user_id"]);
+
+                    // Start camera
+                    utils.clearError();
+                    utils.startCamera('qvga', onVideoStarted, 'videoInput');
+
+                    snapButton.style.visibility = "visible";
+                    caption1.style.visibility = "visible";
+                }
+                else if (data["status"] === "already_registered") {
+                    $("#userNameRoleMessage").text("Username/Role combination already registered");
+                    $("#userNameRoleMessage").show();
+                }                
+                else if (data["status"] === "not_registered") {
+                    $("#userNameRoleMessage").text("Username/Role combination not yet registered");
+                    $("#userNameRoleMessage").show();
+                }
+                else if (data["status"] === "unknown") {
+                    $("#userNameRoleMessage").text("Unknown Username/Role combination");
+                    $("#userNameRoleMessage").show();
+                }
+                else {
+                    console.log(data["error"]);
+                    alert('Sorry an unexpected error has occurred, please try again');
+                }
+            },
+            function(error) {
+                console.log(error);
+                alert('Sorry an unexpected error has occurred, please try again');
+            }
+        );
     }
 
     </script> 
