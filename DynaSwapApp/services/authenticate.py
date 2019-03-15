@@ -2,14 +2,14 @@ import cv2
 import numpy as np
 import os
 from sklearn.svm import SVC
-from DynaSwapApp.services.face_utils import face_utils
+from DynaSwapApp.services.face_utils import FaceUtils
 from DynaSwapApp.services.face_models.MTCNN import MtcnnService
 from DynaSwapApp.services.face_models.FNET import FnetService
 
 
 class Authenticate:
     def authenticate_image(self, image, rs_id):
-        face_util = face_utils()
+        face_util = FaceUtils()
         # Preprocess
         try:
             image = face_util.align(image)
@@ -22,7 +22,7 @@ class Authenticate:
 
         # Get RS Feature from database
         dir = os.path.dirname(__file__)
-        filename = os.path.join(dir, 'database','rs_features.npy')
+        filename = os.path.join(dir, 'database', 'rs_features.npy')
         rs_data = np.load(filename)
 
         rs_idx = rs_id - 1
