@@ -1,6 +1,7 @@
 """  DynaSwapApp/models.py  """
 from django.db import models
 
+
 class Roles(models.Model):
     """  Roles Class  """
     class Meta:
@@ -14,19 +15,20 @@ class Roles(models.Model):
     def __str__(self):
         return self.role
 
+
 class Users(models.Model):
     """  Open MRS Users Class  """
     class Meta:
-        db_table = 'users'    
+        db_table = 'users'
     user_id = models.IntegerField(max_length=11, unique=True, primary_key=True)
     username = models.CharField(max_length=50, unique=True)
+
 
 class DynaSwapUsers(models.Model):
     """  DynaSwapUsers Class  """
     class Meta:
         db_table = 'dynaswap_users'
-    dynaswap_user_id = models.ForeignKey(Users, db_column='dynaswap_user_id', 
-                        on_delete=models.CASCADE, primary_key=True)
+    dynaswap_user_id = models.ForeignKey(Users, db_column='dynaswap_user_id', on_delete=models.CASCADE, primary_key=True)
     role = models.ForeignKey(Roles, db_column='role', on_delete=models.CASCADE)
     bio_capsule = models.BinaryField()
     classifier = models.BinaryField()
@@ -35,6 +37,7 @@ class DynaSwapUsers(models.Model):
 
     def __str__(self):
         return self.dynaswap_user_id
+
 
 class UsersRoles(models.Model):
     """  Open MRS user_role Class  """
