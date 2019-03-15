@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Roles(models.Model):
-    """  Roles Class  """
+    """  openMRS Roles Class  """
     class Meta:
         db_table = 'role'
     role = models.CharField(max_length=32, unique=True, primary_key=True)
@@ -17,7 +17,7 @@ class Roles(models.Model):
 
 
 class Users(models.Model):
-    """  Open MRS Users Class  """
+    """  openMRS Users Class  """
     class Meta:
         db_table = 'users'
     user_id = models.IntegerField(max_length=11, unique=True, primary_key=True)
@@ -40,7 +40,7 @@ class DynaSwapUsers(models.Model):
 
 
 class UsersRoles(models.Model):
-    """  Open MRS user_role Class  """
+    """  openMRS User_Role Class  """
     class Meta:
         db_table = 'user_role'
     user_id = models.ForeignKey(Users, db_column='user_id', on_delete=models.CASCADE)

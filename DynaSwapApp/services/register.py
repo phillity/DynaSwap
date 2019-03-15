@@ -14,8 +14,8 @@ class Register:
         try:
             image = face_util.align(image)
         except:
-            raise ValueError("Multiple or no faces detected in image.")
-            print("Multiple or no faces detected in image.")
+            raise ValueError('Multiple or no faces detected in image.')
+            print('Multiple or no faces detected in image.')
 
         # Feature Extraction
         feature = face_util.extract(image)

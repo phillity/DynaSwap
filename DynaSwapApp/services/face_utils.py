@@ -24,13 +24,13 @@ class FaceUtils:
 
         # No faces are detected
         if nrof_faces == 0:
-            raise ValueError("No faces detected in user image! (align)")
-            print("No faces detected in user image! (align)")
+            raise ValueError('No faces detected in user image! (align)')
+            print('No faces detected in user image! (align)')
 
         # Multiple faces are detected
         if nrof_faces > 1:
-            raise ValueError("Multiple faces detected in user image! (align)")
-            print("Multiple faces detected in user image! (align)")
+            raise ValueError('Multiple faces detected in user image! (align)')
+            print('Multiple faces detected in user image! (align)')
 
         # One face is detected
         # Get left and right eye points
@@ -87,13 +87,13 @@ class FaceUtils:
 
         # No faces are detected
         if nrof_faces == 0:
-            raise ValueError("No faces detected in user image! (crop)")
-            print("No faces detected in user image! (crop)")
+            raise ValueError('No faces detected in user image! (crop)')
+            print('No faces detected in user image! (crop)')
 
         # Multiple faces are detected
         if nrof_faces > 1:
-            raise ValueError("Multiple faces detected in user image! (crop)")
-            print("Multiple faces detected in user image! (crop)")
+            raise ValueError('Multiple faces detected in user image! (crop)')
+            print('Multiple faces detected in user image! (crop)')
 
         # Format face boudning box
         bb = np.around(bb[0]).astype(int)
