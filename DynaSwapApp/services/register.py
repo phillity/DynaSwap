@@ -1,14 +1,17 @@
 import cv2
 import numpy as np
 import os
+import pickle
 from sklearn.svm import SVC
 from DynaSwapApp.services.face_utils import FaceUtils
 from DynaSwapApp.services.face_models.MTCNN import MtcnnService
 from DynaSwapApp.services.face_models.FNET import FnetService
+from DynaSwapApp.models import Roles
+from DynaSwap.settings import BASE_DIR
 
 
 class Register:
-    def register_image(self, image, rs_id):
+    def register_image(self, image, user_id, role):
         face_util = FaceUtils()
         # Preprocess
         try:
@@ -17,47 +20,38 @@ class Register:
             raise ValueError('Multiple or no faces detected in image.')
             print('Multiple or no faces detected in image.')
 
-        # Feature Extraction
+        # Feature extraction
         feature = face_util.extract(image)
         feature_flip = face_util.extract(cv2.flip(image, 1))
 
-        # Get RS Feature from database
-        curr_path = os.path.dirname(__file__)
-        filename = os.path.join(curr_path, 'data', 'rs_features.npy')
-        rs_data = np.load(filename)['arr_0']
+        # Get RS feature from database
+        rs_feature = Roles.objects.filter(role=role)[0].feature
+        rs_feature = pickle.loads(rs_feature)[0, 0, :-1].astype(float)
 
-        rs_idx = rs_id - 1
-        rs_feature = rs_data[rs_idx, :]
-        rs_feature = np.reshape(rs_feature[:-1], (1, 512))
+        # BioCapsule generation
+        bcs = np.empty((0, 514))
+        bc = face_util.bc_fusion(user_id, feature, role, rs_feature)
+        bc_flip = face_util.bc_fusion(user_id, feature_flip, role, rs_feature)
+        bcs = np.vstack([bcs, bc])
+        bcs = np.vstack([bcs, bc_flip])
 
-        # BioCapsule Generation
-        bc = face_util.bc_fusion(1., feature, rs_feature)
-        bc_flip = face_util.bc_fusion(1., feature_flip, rs_feature)
-        bcs = np.vstack([bc, bc_flip])
-
-        # Get BioCaspules for other RSs
-        rs_ids = np.arange(0, 4, 1)
-        rs_ids = np.delete(rs_ids, (rs_idx))
-        for rs_idx in rs_ids:
-            rs_feature = rs_data[rs_idx, :]
-            rs_feature = np.reshape(rs_feature[:-1], (1, 512))
-            bc = face_util.bc_fusion(0., feature, rs_feature)
-            bc_flip = face_util.bc_fusion(0., feature_flip, rs_feature)
-            bcs = np.vstack([bcs, bc])
-            bcs = np.vstack([bcs, bc_flip])
         return bcs
 
-    def register_classifier(self, bcs):
+    def register_classifier(self, user_id, role, bcs):
         # Load dummy features to use as negative examples
-        curr_path = os.path.dirname(__file__)
-        filename = os.path.join(curr_path, 'database', 'dummy_bc.npy')
-        dummy = np.load(filename)
+        filename = os.path.join(BASE_DIR, 'DynaSwapApp', 'services', 'data', 'dummy_bc.npz')
+        dummy = np.load(filename)['arr_0']
 
-        train = np.vstack([bcs, dummy])
-        y = train[:, -1]
-        train = train[:, :-1]
+        data = np.vstack([bcs, dummy])
+        y = np.ones((data.shape[0]))
+        roles = data[:, -1]
+        ids = data[:, -2].astype(float)
+
+        y[roles != role] = 0
+        y[ids != user_id] = 0
+        data = data[:, :-2].astype(float)
 
         classifier = SVC(kernel='rbf', C=1.0, degree=3, gamma='auto', probability=True)
-        classifier.fit(train, y)
+        classifier.fit(data, y)
 
         return classifier

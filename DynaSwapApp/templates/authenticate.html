@@ -320,16 +320,18 @@
                 contentType: false,
                 success: function(data) {
                     if (data["status"] === "authenticate_success") {
-                        let userName = data["userName"];
                         let confidence = data["confidence"];
-                        window.location.href = "/accepted_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
+                        window.location.href = "/accepted_page?userName=" + $("#userName").val() + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
                     else if (data["status"] === "authenticate_failed") {
-                        let userName = data["userName"];
                         let confidence = data["confidence"];
-                        window.location.href = "/rejected_page?userName=" + userName + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
+                        window.location.href = "/rejected_page?userName=" + $("#userName").val() + "&confidence=" + confidence + "&roleId=" + $("#selectedRole").val();
                     }
                     else if (data["status"] === "not_registered") {
+                        alert(data["error"]);
+                        window.location.href = "/";
+                    }
+                    else if (data["status"] === "detection_error") {
                         alert(data["error"]);
                         window.location.href = "/";
                     }
@@ -403,7 +405,7 @@
         let role = $("#selectedRole").val();
         if (userName.length == 0)
         {
-            $("#userNameRoleMessage").text("Please enter a user name");
+            $("#userNameRoleMessage").text("Please enter a Username");
             $("#userNameRoleMessage").show();
             return;
         }

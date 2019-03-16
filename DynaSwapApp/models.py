@@ -6,7 +6,7 @@ class Roles(models.Model):
     """  openMRS Roles Class  """
     class Meta:
         db_table = 'role'
-    role = models.CharField(max_length=32, unique=True, primary_key=True)
+    role = models.CharField(max_length=50, unique=True, primary_key=True)
     description = models.CharField(max_length=255)
     uuid = models.CharField(max_length=38)
     url = models.URLField(max_length=255)
@@ -28,8 +28,8 @@ class DynaSwapUsers(models.Model):
     """  DynaSwapUsers Class  """
     class Meta:
         db_table = 'dynaswap_users'
-    dynaswap_user_id = models.ForeignKey(Users, db_column='dynaswap_user_id', on_delete=models.CASCADE, primary_key=True)
-    role = models.ForeignKey(Roles, db_column='role', on_delete=models.CASCADE)
+    dynaswap_user_id = models.IntegerField(max_length=11, primary_key=True)
+    role = models.CharField(max_length=50)
     bio_capsule = models.BinaryField()
     classifier = models.BinaryField()
     created_on = models.DateTimeField(auto_now=True)

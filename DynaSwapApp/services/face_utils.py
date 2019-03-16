@@ -124,7 +124,7 @@ class FaceUtils:
     ##################################################
 
     ########## BC GENERATION #########################
-    def bc_fusion(self, user_id, user_feature, rs_feature):
+    def bc_fusion(self, user_id, user_feature, role, rs_feature):
         user_signature = self.__signature_extraction(user_feature)
         user_key = self.__key_generation(user_signature)
 
@@ -132,7 +132,9 @@ class FaceUtils:
         rs_key = self.__key_generation(rs_signature)
 
         bc = np.multiply(user_feature, rs_key) + np.multiply(rs_feature, user_key)
-        bc = np.reshape(np.append(bc, user_id), (1, 513))
+        bc = np.append(bc, user_id).astype(object)
+        bc = np.append(bc, role)
+        bc = np.reshape(bc, (1, 514))
         return bc
 
     def __signature_extraction(self, feature):

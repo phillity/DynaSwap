@@ -343,6 +343,10 @@
                         alert(data["error"]);
                         window.location.href = "/";
                     }
+                    else if (data["status"] === "detection_error") {
+                        alert(data["error"]);
+                        window.location.href = "/";
+                    }
                     else {
                         let errMsg = "Sorry an unexpected error has occurred, please try again";
                         alert(errMsg);
@@ -413,7 +417,7 @@
         let role = $("#selectedRole").val();
         if (userName.length == 0)
         {
-            $("#userNameRoleMessage").text("Please enter a user name");
+            $("#userNameRoleMessage").text("Please enter a Username");
             $("#userNameRoleMessage").show();
             return;
         }
