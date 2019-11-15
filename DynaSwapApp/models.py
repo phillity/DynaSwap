@@ -3,7 +3,7 @@ from django.db import models
 
 
 class Roles(models.Model):
-    """  openMRS Roles Class  """
+    """  OpenMRS role Class  """
     class Meta:
         db_table = 'role'
     role = models.CharField(max_length=50, unique=True, primary_key=True)
@@ -17,18 +17,18 @@ class Roles(models.Model):
 
 
 class Users(models.Model):
-    """  openMRS Users Class  """
+    """  OpenMRS users Class  """
     class Meta:
         db_table = 'users'
-    user_id = models.IntegerField(max_length=11, unique=True, primary_key=True)
+    user_id = models.IntegerField(unique=True, primary_key=True)
     username = models.CharField(max_length=50, unique=True)
 
 
 class DynaSwapUsers(models.Model):
-    """  DynaSwapUsers Class  """
+    """  dynaswap_users Class  """
     class Meta:
         db_table = 'dynaswap_users'
-    dynaswap_user_id = models.IntegerField(max_length=11, primary_key=True)
+    dynaswap_user_id = models.IntegerField(primary_key=True)
     role = models.CharField(max_length=50)
     bio_capsule = models.BinaryField()
     classifier = models.BinaryField()
@@ -40,7 +40,7 @@ class DynaSwapUsers(models.Model):
 
 
 class UsersRoles(models.Model):
-    """  openMRS User_Role Class  """
+    """  OpenMRS user_role Class  """
     class Meta:
         db_table = 'user_role'
     user_id = models.ForeignKey(Users, db_column='user_id', on_delete=models.CASCADE)

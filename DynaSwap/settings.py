@@ -11,13 +11,10 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
-import cv2
-from DynaSwapApp.services.face_models.MTCNN import MtcnnService
-from DynaSwapApp.services.face_models.FNET import FnetService
+from DynaSwapApp.services.face_models.face_model import FaceService
 
-#Initialize singletons
-MtcnnService()
-FnetService()
+# Initialize singletons
+FaceService()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
