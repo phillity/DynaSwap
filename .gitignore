@@ -6,4 +6,6 @@ __pycache__
 
 *.properties
 
+openmrs.sql
+
 DynaSwapApp/services/face_models
