@@ -23,17 +23,21 @@ class Register:
         user_feature_flip = face_util.embed(cv2.flip(image, 1))
 
         # Get RS feature from database
-        rs_feature = pickle.loads(Roles.objects.filter(role=role)[0].feature)[:-1].astype(float)
+        rs_feature = pickle.loads(Roles.objects.filter(
+            role=role)[0].feature)[:-1].astype(float)
 
         # BioCapsule generation
         bcs = np.empty((2, 514), dtype=object)
-        bcs[0] = np.append(face_util.biocapsule(user_feature, rs_feature), [user_id, role])
-        bcs[1] = np.append(face_util.biocapsule(user_feature_flip, rs_feature), [user_id, role])
+        bcs[0] = np.append(face_util.biocapsule(
+            user_feature, rs_feature), [user_id, role])
+        bcs[1] = np.append(face_util.biocapsule(
+            user_feature_flip, rs_feature), [user_id, role])
         return bcs
 
     def register_classifier(self, user_id, role, bcs):
         # Load dummy features to use as negative examples
-        filename = os.path.join(BASE_DIR, "DynaSwapApp", "services", "data", "dummy_bcs.npz")
+        filename = os.path.join(BASE_DIR, "DynaSwapApp",
+                                "services", "data", "dummy_bcs.npz")
         dummy = np.load(filename, allow_pickle=True)["arr_0"]
 
         data = np.vstack([bcs, dummy])
@@ -45,7 +49,8 @@ class Register:
         y[ids != user_id] = 0
         data = data[:, :-2].astype(float)
 
-        classifier = SVC(kernel="rbf", C=1.0, degree=3, gamma="auto", probability=True)
+        classifier = SVC(kernel="rbf", C=1.0, degree=3,
+                         gamma="auto", probability=True)
         classifier.fit(data, y)
 
         return classifier

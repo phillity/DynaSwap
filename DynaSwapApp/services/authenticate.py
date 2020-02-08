@@ -18,10 +18,12 @@ class Authenticate:
         query_feature = face_util.embed(image)
 
         # Get RS feature from database
-        rs_feature = pickle.loads(Roles.objects.filter(role=role)[0].feature)[:-1].astype(float)
+        rs_feature = pickle.loads(Roles.objects.filter(
+            role=role)[0].feature)[:-1].astype(float)
 
         # BioCapsule generation
-        bc = np.append(face_util.biocapsule(query_feature, rs_feature), user_id)
+        bc = np.append(face_util.biocapsule(
+            query_feature, rs_feature), user_id)
         bc = np.append(bc.astype(object), role)
         return bc
 

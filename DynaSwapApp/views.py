@@ -67,12 +67,14 @@ class RegisterView(TemplateView):
         classifier = self.__reg.register_classifier(user_id, role, bcs)
 
         # Convert biocapsules and classifier to binary to save in database
-        classifier_binary = pickle.dumps(classifier, protocol=pickle.HIGHEST_PROTOCOL)
+        classifier_binary = pickle.dumps(
+            classifier, protocol=pickle.HIGHEST_PROTOCOL)
         bcs_binary = pickle.dumps(bcs, protocol=pickle.HIGHEST_PROTOCOL)
 
         # Save new user into database
         try:
-            new_user = DynaSwapUsers(dynaswap_user_id=user_id, role=role, bio_capsule=bcs_binary, classifier=classifier_binary)
+            new_user = DynaSwapUsers(
+                dynaswap_user_id=user_id, role=role, bio_capsule=bcs_binary, classifier=classifier_binary)
             new_user.save()
         except Exception:
             raise Exception("Database connection error during registration.")
@@ -95,7 +97,8 @@ class RegisterView(TemplateView):
             # Check if already registered
             user_instance = user_found[0]
             user_id = user_instance.user_id
-            dynaswap_user = DynaSwapUsers.objects.filter(dynaswap_user_id=user_id, role=role)
+            dynaswap_user = DynaSwapUsers.objects.filter(
+                dynaswap_user_id=user_id, role=role)
             if dynaswap_user.count() > 0:
                 return JsonResponse({"status": "already_registered", "error": user_name + " already registered as " + role + " role."})
 
@@ -110,14 +113,16 @@ class RegisterView(TemplateView):
                 if key[:5] == "image":
                     format, imgstr = value.split(";base64,")
                     ext = format.split("/")[-1]
-                    image = ContentFile(base64.b64decode(imgstr), name="temp." + ext)
+                    image = ContentFile(base64.b64decode(
+                        imgstr), name="temp." + ext)
                     images.append(image)
 
             # Convert submited images to biocapsules
             bcs = np.empty((0, 514), dtype=object)
             for image in images:
                 stream = image.file
-                image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
+                image = cv2.imdecode(np.fromstring(
+                    stream.getvalue(), dtype=np.uint8), 1)
                 try:
                     bc = self.__reg.register_image(image, user_id, role)
                 except Exception as e:
@@ -145,7 +150,8 @@ class AuthenticateView(TemplateView):
         user_found.bio_capsule = bcs_binary
 
         # Update user classifier
-        classifier = self.__reg.register_classifier(user_found.dynaswap_user_id, user_found.role, bcs)
+        classifier = self.__reg.register_classifier(
+            user_found.dynaswap_user_id, user_found.role, bcs)
         classifier_binary = pickle.dumps(classifier)
         user_found.classifier = classifier_binary
 
@@ -169,7 +175,8 @@ class AuthenticateView(TemplateView):
             user_id = user_found[0].user_id
 
             # Check valid user
-            user_found = DynaSwapUsers.objects.filter(dynaswap_user_id=user_id, role=role)
+            user_found = DynaSwapUsers.objects.filter(
+                dynaswap_user_id=user_id, role=role)
             if user_found.count() < 1:
                 return JsonResponse({"status": "authenticate_failed"})
             user_found = user_found[0]
@@ -181,7 +188,8 @@ class AuthenticateView(TemplateView):
 
             # Convert submited images to biocapsules
             stream = image.file
-            image = cv2.imdecode(np.fromstring(stream.getvalue(), dtype=np.uint8), 1)
+            image = cv2.imdecode(np.fromstring(
+                stream.getvalue(), dtype=np.uint8), 1)
             try:
                 bc = self.__auth.authenticate_image(image, user_id, role)
             except Exception as e:
@@ -191,7 +199,8 @@ class AuthenticateView(TemplateView):
             classifier = pickle.loads(user_found.classifier)
 
             # Perform authentication
-            classification, prob = self.__auth.authenticate_classifier(bc[:-2], classifier)
+            classification, prob = self.__auth.authenticate_classifier(
+                bc[:-2], classifier)
 
             # Classification outcome
             if not classification:
@@ -200,7 +209,8 @@ class AuthenticateView(TemplateView):
             # Update user with authentication time, new bc, new classifier
             if prob > 0.70:
                 bcs = pickle.loads(user_found.bio_capsule)
-                t = Thread(target=self.update_database, args=(user_found, bc, bcs))
+                t = Thread(target=self.update_database,
+                           args=(user_found, bc, bcs))
                 t.setDaemon(True)
                 t.start()
 
@@ -227,11 +237,13 @@ class GetUserRoleView(TemplateView):
             user_instance = user_found[0]
 
             # Check valid user/role
-            user_role_found = UsersRoles.objects.filter(user_id=user_instance.user_id, role=role)
+            user_role_found = UsersRoles.objects.filter(
+                user_id=user_instance.user_id, role=role)
             if user_role_found.count() < 1:
                 return JsonResponse({"status": "unknown"})
 
-            dynaswap_user = DynaSwapUsers.objects.filter(dynaswap_user_id=user_instance.user_id, role=role)
+            dynaswap_user = DynaSwapUsers.objects.filter(
+                dynaswap_user_id=user_instance.user_id, role=role)
 
             # Check not already registered
             if dynaswap_user.count() > 0:

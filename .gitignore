@@ -1,9 +1,9 @@
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 
-*.vscode/
+.vscode
 
-*my.cnf*
+*.properties
 
-face_models/
+DynaSwapApp/services/face_models

@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from scipy.signal import convolve2d
 from DynaSwapApp.services.face_models.face_model import FaceService
